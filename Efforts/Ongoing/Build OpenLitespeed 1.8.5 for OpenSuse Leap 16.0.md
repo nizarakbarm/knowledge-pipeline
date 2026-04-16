@@ -1,0 +1,1 @@
+[[Build OpenLitespeed 1.8.5 for OpenSuse Leap 16.0]]

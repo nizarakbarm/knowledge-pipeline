@@ -1,0 +1,14 @@
+{
+	"nodes":[
+		{"id":"a1b2c3d4e5f67890","type":"text","text":"# bpf_get_current_pid_tgid() Return Value\n\n64-bit integer (__u64) bit structure","x":0,"y":-40,"width":650,"height":120,"color":"4"},
+		{"id":"b2c3d4e5f6a78901","type":"text","text":"## Bits 32-63\n\n**TGID** (Thread Group ID)\n\nAppears as PID in userspace\n\n`current_task->tgid << 32`","x":0,"y":120,"width":300,"height":100,"color":"2"},
+		{"id":"c3d4e5f6a7b89012","type":"text","text":"## Bits 0-31\n\n**PID** (Process ID)\n\nKernel thread ID\n\n`current_task->pid`","x":300,"y":120,"width":300,"height":100,"color":"5"},
+		{"id":"d4e5f6a7b8c90123","type":"text","text":"## Extraction\n\n```c\n// Returns upper 32 bits (TGID = userspace PID)\nint pid = bpf_get_current_pid_tgid() >> 32;\n\n// Returns lower 32 bits (kernel PID)\nint tgid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;\n```","x":0,"y":250,"width":650,"height":250,"color":"6"},
+		{"id":"e5f6a7b8c9d01234","type":"text","text":"## Construction\n\n```\ntgid << 32 | pid\n```\n\nBitwise OR of shifted TGID and PID","x":680,"y":105,"width":290,"height":130,"color":"3"}
+	],
+	"edges":[
+		{"id":"f6a7b8c9d0e12345","fromNode":"b2c3d4e5f6a78901","fromSide":"bottom","toNode":"d4e5f6a7b8c90123","toSide":"top","toEnd":"none"},
+		{"id":"a7b8c9d0e1f23456","fromNode":"c3d4e5f6a7b89012","fromSide":"bottom","toNode":"d4e5f6a7b8c90123","toSide":"top","toEnd":"none"},
+		{"id":"b8c9d0e1f2a34567","fromNode":"e5f6a7b8c9d01234","fromSide":"left","toNode":"c3d4e5f6a7b89012","toSide":"right"}
+	]
+}

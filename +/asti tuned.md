@@ -1,0 +1,1 @@
+see [⚡ System Performance Tuning and Optimization in AlmaLinux: Speed Guide | Krython](https://krython.com/post/system-performance-tuning-optimization-almalinux/)qu
