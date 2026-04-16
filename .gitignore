@@ -33,3 +33,23 @@ Efforts/Done/Itenary Pycon HK 2025*.md
 
 # Logs
 *.logfmt
+
+# ============================================
+# .obsidian Sensitive Files Only
+# ============================================
+
+# CONFIRMED secrets
+.obsidian/quickshare.json
+
+# Plugin data files (frequently contain API keys/tokens)
+.obsidian/plugins/*/data.json
+.obsidian/text-generator.json
+
+# Workspace state (personal machine-specific data)
+.obsidian/workspace.json
+.obsidian/workspace/
+.obsidian/workspaces.json
+.obsidian/file-recovery.json
+
+# Git credential helper
+.obsidian/plugins/obsidian-git/obsidian_askpass.sh
