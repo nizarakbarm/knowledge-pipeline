@@ -1,0 +1,15 @@
+# System files
+.DS_Store
+
+# opencode artifacts
+.opencode/.archive/
+.opencode/memory/
+.opencode/node_modules/
+.opencode/package-lock.json
+.opencode/bun.lock
+.opencode/.DS_Store
+.opencode/.claude/
+.opencode/skills-lock.json
+
+# Logs
+*.logfmt
