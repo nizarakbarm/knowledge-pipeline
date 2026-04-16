@@ -11,5 +11,22 @@
 .opencode/.claude/
 .opencode/skills-lock.json
 
+# NotebookLM Authentication (SENSITIVE)
+.opencode/skills/notebooklm/data/
+.opencode/skills/notebooklm/.venv/
+
+# Legacy Archive
+.archive/
+
+# Obsidian Temp / Unprocessed
+*.base
+Untitled.canvas
+Untitled/
+
+# Sensitive / Server-specific notes
+x/Openresty 4.md
++/All Cpanel SafeRun Object.md
+Atlas/Dots/Things/Openresty*
+
 # Logs
 *.logfmt
