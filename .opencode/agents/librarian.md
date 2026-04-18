@@ -48,12 +48,19 @@ The vault follows this structure:
 ```
 Ideaverse Lite 1.5/
 ├── Atlas/           # Maps of Content (MOCs), navigation
-│   └── Maps/
+│   ├── Maps/        # High-level views and MOCs
+│   └── Dots/        # Atomic concept notes (LYT philosophy)
+│       ├── Things/      # Objective concepts, frameworks, tools
+│       ├── Sources/     # External materials, books, articles
+│       ├── Statements/  # Personal insights, opinions
+│       ├── People/      # Biographies, contacts
+│       └── X/           # Misc/unsorted
+├── Library/         # Permanent notes (deep concepts, literature)
+│   └── Books/       # Book list and reviews
 ├── Calendar/        # Temporal notes
 │   ├── YYYY-MM.md
 │   ├── Logs/
 │   └── Notes/
-├── Library/         # Permanent notes (concepts, literature)
 ├── Spaces/          # Project-specific collections
 ├── Efforts/         # Active work, tasks
 │   ├── On/
@@ -63,21 +70,71 @@ Ideaverse Lite 1.5/
 └── Home.md          # Dashboard
 ```
 
+## Atlas/Dots Categories (LYT Philosophy)
+
+Notes in `Atlas/Dots/` answer specific questions and build from objective to subjective:
+
+### Things — "What is this?"
+**Objective concepts, frameworks, tools, definitions, known facts**
+- Programming languages (Golang, Python, Rust)
+- Technical tools (eBPF, Suricata, Firecracker)
+- Frameworks and methodologies
+- **Location**: `Atlas/Dots/Things/`
+
+### Sources — "What did someone else say?"
+**External materials, verbatim quotes, references**
+- Articles and blog posts
+- Documentation and manuals
+- Quotes and excerpts (NOT full book notes — those go to `Library/Books/`)
+- **Location**: `Atlas/Dots/Sources/`
+
+### Statements — "What do I think?"
+**Personal insights, principles, opinions**
+- Your unique perspective on Things
+- Principles derived from experience
+- Opinions and judgments
+- **Location**: `Atlas/Dots/Statements/`
+
+### People — "Who is this person?"
+**Biographies, professional contacts**
+- Historical figures
+- Authors, researchers, thought leaders
+- Professional contacts
+- **Location**: `Atlas/Dots/People/`
+
+### X — "What doesn't fit yet?"
+**Miscellaneous, unsorted, transitional**
+- Notes that don't fit other categories yet
+- Temporary holding area before classification
+- **Location**: `Atlas/Dots/X/`
+
+### Relationship: Objective → Subjective
+```
+Things (objective) + Sources (external) → Statements (subjective)
+```
+
+**Example**: A note about "eBPF" is a **Thing**. Your insight "eBPF is the future of kernel observability" is a **Statement**. The eunomia.dev tutorial you read is a **Source**.
+
 ## Location Decision Matrix
 
 ### By Note Type
 
-| Note Type | Primary Location | Secondary Options | Filename Pattern |
-|-----------|-----------------|-------------------|------------------|
-| **Concept** | Library/ | Atlas/Maps/ | YYYYMMDD-concept-name.md |
-| **Resource** | Library/ | Calendar/Notes/ | YYYYMMDD-resource-title.md |
-| **Thought** | +/ (Inbox) | Calendar/Notes/ | YYYYMMDD-thought-summary.md |
-| **Snippet** | +/ (Inbox) | Calendar/Logs/ | YYYYMMDD-source-snippet.md |
-| **Daily Note** | Calendar/Notes/ | - | YYYY-MM-DD.md |
-| **Log Entry** | Calendar/Logs/ | - | YYYY-MM-DD-log-type.md |
-| **MOC** | Atlas/Maps/ | Library/ | MOC-Topic.md |
-| **Person** | Library/People/ | - | Firstname-Lastname.md |
-| **Project** | Spaces/ | Efforts/On/ | project-name.md |
+| Note Type | Primary Location | ACE Category | Question | Filename Pattern |
+|-----------|-----------------|--------------|----------|------------------|
+| **Thing** | `Atlas/Dots/Things/` | Objective | "What is this?" | YYYYMMDD-thing-name.md |
+| **Source** | `Atlas/Dots/Sources/` | External | "What did they say?" | YYYYMMDD-source-title.md |
+| **Statement** | `Atlas/Dots/Statements/` | Subjective | "What do I think?" | YYYYMMDD-statement-summary.md |
+| **Person** | `Atlas/Dots/People/` | Reference | "Who is this?" | Firstname-Lastname.md |
+| **X** | `Atlas/Dots/X/` | Unsorted | "What doesn't fit?" | YYYYMMDD-topic.md |
+| **Concept (deep)** | `Library/` | Deep knowledge | Long-form understanding | YYYYMMDD-concept-name.md |
+| **Book** | `Library/Books/` | Literature | External work | Book-Title.md |
+| **Resource** | `Library/` or `Calendar/Notes/` | Reference | Temporal capture | YYYYMMDD-resource-title.md |
+| **Thought** | `+/` | Fleeting | Quick capture | YYYYMMDD-thought-summary.md |
+| **Snippet** | `+/` | Fleeting | Quick capture | YYYYMMDD-source-snippet.md |
+| **Daily Note** | `Calendar/Notes/` | Temporal | Daily log | YYYY-MM-DD.md |
+| **Log Entry** | `Calendar/Logs/` | Temporal | Activity log | YYYY-MM-DD-log-type.md |
+| **MOC** | `Atlas/Maps/` | Navigation | Overview | MOC-Topic.md |
+| **Project** | `Spaces/` | Action | Active work | project-name.md |
 
 ### By Domain/Topic
 
@@ -92,6 +149,10 @@ Ideaverse Lite 1.5/
 | Philosophy | Library/Philosophy/ | [[Philosophy MOC]] |
 | Business | Library/Business/ | [[Business MOC]] |
 | Health | Library/Health/ | [[Health MOC]] |
+
+**Rule of thumb**: 
+- **Technical things** (Golang, eBPF, tools) → `Atlas/Dots/Things/`
+- **Deep concepts** (Psychology, Philosophy) → `Library/`
 
 ## Filename Generation
 
@@ -137,6 +198,52 @@ project-name.md
 
 ```lua
 function determine_location(note_data) {
+  // Step 0: Check Atlas/Dots categories (LYT philosophy)
+  if note_data.type == "thing" or note_data.is_objective_concept {
+    return {
+      folder: "Atlas/Dots/Things/",
+      filename: generate_filename(note_data),
+      confidence: 0.90,
+      reasoning: "Objective concept belongs in Things"
+    }
+  }
+  
+  if note_data.type == "source" or note_data.is_external_material {
+    return {
+      folder: "Atlas/Dots/Sources/",
+      filename: generate_filename(note_data),
+      confidence: 0.90,
+      reasoning: "External material belongs in Sources"
+    }
+  }
+  
+  if note_data.type == "statement" or note_data.is_personal_insight {
+    return {
+      folder: "Atlas/Dots/Statements/",
+      filename: generate_filename(note_data),
+      confidence: 0.90,
+      reasoning: "Personal insight belongs in Statements"
+    }
+  }
+  
+  if note_data.type == "person" or note_data.is_biography {
+    return {
+      folder: "Atlas/Dots/People/",
+      filename: generate_filename(note_data),
+      confidence: 0.90,
+      reasoning: "Biography belongs in People"
+    }
+  }
+  
+  if note_data.type == "x" or note_data.is_unsorted {
+    return {
+      folder: "Atlas/Dots/X/",
+      filename: generate_filename(note_data),
+      confidence: 0.85,
+      reasoning: "Unsorted note goes to X (misc)"
+    }
+  }
+  
   // Step 1: Check note type
   if note_data.type == "thought" or note_data.type == "snippet" {
     return {
@@ -311,21 +418,60 @@ if ("Library/Psychology" | path exists) { echo "exists" }
 
 ## Examples
 
-### Example 1: Clear Case
+### Example 1: Deep Concept (Library)
 **Input:** Note about cognitive biases, tags=[psychology, bias], moc=[[Psychology MOC]]
 **Decision:**
 - Folder: `Library/Psychology/`
 - Filename: `20240115-cognitive-bias.md`
 - Confidence: 0.95
 
-### Example 2: Ambiguous Case
+### Example 2: Thing (Atlas/Dots/Things)
+**Input:** Technical note about eBPF verifier, tags=[ebpf, kernel, concept]
+**Decision:**
+- Folder: `Atlas/Dots/Things/eBPF/`
+- Filename: `20240415-ebpf-verifier.md`
+- Confidence: 0.92
+- Reasoning: "Objective technical concept belongs in Things"
+
+### Example 3: Source (Atlas/Dots/Sources)
+**Input:** Article about Rust memory safety from blog.rust-lang.org
+**Decision:**
+- Folder: `Atlas/Dots/Sources/`
+- Filename: `20240410-rust-memory-safety-article.md`
+- Confidence: 0.90
+- Reasoning: "External article belongs in Sources"
+
+### Example 4: Statement (Atlas/Dots/Statements)
+**Input:** Personal insight: "eBPF is the future of kernel observability"
+**Decision:**
+- Folder: `Atlas/Dots/Statements/`
+- Filename: `20240415-ebpf-future-of-observability.md`
+- Confidence: 0.88
+- Reasoning: "Personal insight/opinion belongs in Statements"
+
+### Example 5: Person (Atlas/Dots/People)
+**Input:** Biography note about Brendan Gregg (systems performance expert)
+**Decision:**
+- Folder: `Atlas/Dots/People/`
+- Filename: `Brendan-Gregg.md`
+- Confidence: 0.95
+
+### Example 6: X (Atlas/Dots/X)
+**Input:** Random note that doesn't fit existing categories yet
+**Decision:**
+- Folder: `Atlas/Dots/X/`
+- Filename: `20240410-misc-topic.md`
+- Confidence: 0.70
+- Reasoning: "Unsorted — temporary holding area"
+
+### Example 7: Ambiguous Case
 **Input:** Thought about productivity system, no clear MOC
 **Decision:**
 - Primary: `Library/Productivity/20240115-productivity-system.md`
 - Alternative: `+/20240115-productivity-system.md`
 - Confidence: 0.75
 
-### Example 3: New Domain
+### Example 8: New Domain
 **Input:** Note about quantum computing, no existing folder
 **Decision:**
 - Folder: `Library/Physics/` (needs creation)
