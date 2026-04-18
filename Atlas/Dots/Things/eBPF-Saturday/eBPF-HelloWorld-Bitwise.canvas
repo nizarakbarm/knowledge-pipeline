@@ -1,0 +1,18 @@
+{
+	"nodes":[
+		{"id":"a1b2c3d4e5f67890","type":"text","x":0,"y":0,"width":600,"height":80,"text":"# bpf_get_current_pid_tgid() Bit Structure\n\nReturns `__u64` (unsigned 64-bit integer)","color":"4"},
+		{"id":"b2c3d4e5f6789012","type":"text","x":0,"y":120,"width":600,"height":100,"text":"## 64-bit Layout\n\n```\n[63....................32][31.....................0]\n        TGID (32-bit)           PID (32-bit)\n```","color":"2"},
+		{"id":"c3d4e5f678901234","type":"text","x":0,"y":250,"width":280,"height":120,"text":"## Extract PID\n\n```c\n// Upper 32 bits\npid = value >> 32;\n```\n\n**Result**: Process ID","color":"1"},
+		{"id":"d4e5f67890123456","type":"text","x":320,"y":250,"width":280,"height":120,"text":"## Extract TGID\n\n```c\n// Lower 32 bits\ntgid = value & 0xFFFFFFFF;\n```\n\n**Result**: Thread Group ID","color":"5"},
+		{"id":"e5f6789012345678","type":"text","x":0,"y":400,"width":600,"height":100,"text":"## Kernel Internals\n\n`current_task->tgid << 32 | current_task->pid`\n\n- **TGID** = Thread Group ID (what userspace calls PID)\n- **PID** = actual thread ID (what userspace calls TID)","color":"3"},
+		{"id":"f678901234567890","type":"text","x":0,"y":530,"width":600,"height":80,"text":"## In the Hello World Code\n\n`int pid = bpf_get_current_pid_tgid() >> 32;` → extracts the **TGID** (userspace PID)","color":"6"}
+	],
+	"edges":[
+		{"id":"1234567890abcdef","fromNode":"a1b2c3d4e5f67890","fromSide":"bottom","toNode":"b2c3d4e5f6789012","toSide":"top","toEnd":"arrow"},
+		{"id":"234567890abcdef1","fromNode":"b2c3d4e5f6789012","fromSide":"bottom","toNode":"c3d4e5f678901234","toSide":"top","toEnd":"arrow","label":"upper 32"},
+		{"id":"34567890abcdef12","fromNode":"b2c3d4e5f6789012","fromSide":"bottom","toNode":"d4e5f67890123456","toSide":"top","toEnd":"arrow","label":"lower 32"},
+		{"id":"4567890abcdef123","fromNode":"c3d4e5f678901234","fromSide":"bottom","toNode":"e5f6789012345678","toSide":"top","toEnd":"arrow"},
+		{"id":"567890abcdef1234","fromNode":"d4e5f67890123456","fromSide":"bottom","toNode":"e5f6789012345678","toSide":"top","toEnd":"arrow"},
+		{"id":"67890abcdef12345","fromNode":"e5f6789012345678","fromSide":"bottom","toNode":"f678901234567890","toSide":"top","toEnd":"arrow"}
+	]
+}
