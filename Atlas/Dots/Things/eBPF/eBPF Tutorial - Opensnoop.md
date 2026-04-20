@@ -96,15 +96,15 @@ struct {
 
 ## Global Variables vs Maps
 
-| Aspect | Global Variables | BPF Maps |
-|--------|------------------|----------|
-| **Purpose** | Runtime configuration | State storage, data sharing |
-| **Size** | Single values | Thousands of entries |
-| **Persistence** | Fixed at load time | Dynamic during execution |
-| **Kernel modification** | Read-only (`const`) | Read-write |
-| **Cross-program** | No | Yes |
-| **User-space access** | Via BPF object info | Direct lookup/update |
-| **Use case** | Filter parameters | Event correlation, statistics |
+| Aspect                  | Global Variables      | BPF Maps                      |
+| ----------------------- | --------------------- | ----------------------------- |
+| **Purpose**             | Runtime configuration | State storage, data sharing   |
+| **Size**                | Single values         | Thousands of entries          |
+| **Persistence**         | Fixed at load time    | Dynamic during execution      |
+| **Kernel modification** | Read-only (`const`)   | Read-write                    |
+| **Cross-program**       | No                    | Yes                           |
+| **User-space access**   | Via BPF object info   | Direct lookup/update          |
+| **Use case**            | Filter parameters     | Event correlation, statistics |
 
 > [!tip] When to Use What
 > - **Global variables** for simple configuration (PID filter, enable/disable flags)
@@ -180,6 +180,48 @@ int tracepoint__syscalls__sys_enter_openat(struct trace_event_raw_sys_enter *ctx
 /// "Trace open family syscalls."
 char LICENSE[] SEC("license") = "GPL";
 ```
+
+### trace_event_raw_sys_enter Structure
+
+> [!info] `struct trace_event_raw_sys_enter`
+> This structure represents the tracepoint context for system call entry events. It is generated from your running kernel's BTF information via `vmlinux.h`.
+
+**Where it's defined:**
+- **Kernel source:** Generated from tracepoint definitions in `include/trace/syscalls.h`
+- **eBPF code:** Included via `#include <vmlinux.h>` (generated from `/sys/kernel/btf/vmlinux`)
+- **Generation command:** `bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h`
+
+**Structure layout (from BTF):**
+```c
+struct trace_event_raw_sys_enter {
+    struct trace_entry ent;      // Common header: type, flags, pid
+    long id;                      // Syscall number (__syscall_nr)
+    unsigned long args[6];        // Syscall arguments
+    char __data[0];              // Variable data follows
+};
+```
+
+**Your system's `sys_enter_openat` format:**
+```
+field:unsigned short common_type;       offset:0;  size:2;
+field:unsigned char common_flags;       offset:2;  size:1;
+field:unsigned char common_preempt_count; offset:3; size:1;
+field:int common_pid;                   offset:4;  size:4;
+field:int __syscall_nr;                 offset:8;  size:4;
+field:int dfd;                          offset:16; size:8;
+field:const char * filename;            offset:24; size:8;
+field:int flags;                        offset:32; size:8;
+field:umode_t mode;                     offset:40; size:8;
+```
+
+**Argument mapping:**
+The generic `args[]` array maps to the specific fields:
+- `args[0]` → `dfd` (directory file descriptor)
+- `args[1]` → `filename` (path string pointer)
+- `args[2]` → `flags` (open flags)
+- `args[3]` → `mode` (file permissions)
+
+This is why the opensnoop code accesses: `(pid_t)ctx->args[0]` to get the PID.
 
 ### Code Breakdown
 
