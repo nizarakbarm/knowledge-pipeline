@@ -135,7 +135,24 @@ int BPF_PROG(do_unlinkat_exit, int dfd, struct filename *name, long ret)
 | Component | Purpose |
 |-----------|---------|
 | `BPF_PROG` | Macro for fentry/fexit programs; handles parameter unwrapping automatically |
-| `name->name` | **Direct access** to kernel struct member without helper (fentry advantage) |
+| `name->name` | **Direct access** to `struct filename->name` without helper (fentry advantage) |
+
+> [!info] `struct filename`
+> `struct filename` is defined in the Linux kernel source (typically `include/linux/fs.h` or `include/linux/filename.h`) and is included via `vmlinux.h` generated from your kernel's BTF.
+>
+> ```c
+> struct filename {
+>     const char *name;        // The actual filename string
+>     struct filename *next;   // For file renaming
+>     ...
+> };
+> ```
+>
+> This is why fentry allows direct access to `name->name` without helpers — `vmlinux.h` from BTF includes this structure definition. To verify the exact layout on your system:
+>
+> ```bash
+> bpftool btf dump file /sys/kernel/btf/vmlinux | grep -A 10 "struct filename"
+> ```
 | `ret` | Return value available at fexit exit point |
 | `SEC("fentry/do_unlinkat")` | Attaches to function entry |
 | `SEC("fexit/do_unlinkat")` | Attaches to function exit with full context |
