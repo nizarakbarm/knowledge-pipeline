@@ -53,3 +53,6 @@ Efforts/Done/Itenary Pycon HK 2025*.md
 
 # Git credential helper
 .obsidian/plugins/obsidian-git/obsidian_askpass.sh
+# Backup files
+*.bak
+*.bak.md
