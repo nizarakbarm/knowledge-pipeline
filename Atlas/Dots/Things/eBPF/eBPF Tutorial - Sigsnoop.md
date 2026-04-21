@@ -38,10 +38,10 @@ source:
 
 Tracing **only entry** gives you intent (sender, target, signal number) but **not result**. Tracing **only exit** gives you success/failure but **not context**. You need **both** for complete visibility.
 
-| Tracepoint | Captures |
-|------------|----------|
-| `sys_enter_kill` | Sender PID, target PID, signal number |
-| `sys_exit_kill` | Return value (0 = success, negative = error) |
+| Tracepoint       | Captures                                     |
+| ---------------- | -------------------------------------------- |
+| `sys_enter_kill` | Sender PID, target PID, signal number        |
+| `sys_exit_kill`  | Return value (0 = success, negative = error) |
 
 **Together they answer:** Who sent what signal to whom, and did it work?
 
@@ -365,6 +365,95 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
      systemd-journal-363     [000] d...1   672.563870: bpf_trace_printk: PID 363 (systemd-journal) sent signal 0
      systemd-journal-363     [000] d...1   672.563870: bpf_trace_printk: to PID 1527, ret = -3
 ```
+
+---
+
+### eBPF Map Helpers Deep Dive
+
+#### bpf_map_update_elem
+
+> [!info] Definition
+> Insert or update a key-value pair in an eBPF map.
+
+```c
+static long (* const bpf_map_update_elem)(
+    void *map, 
+    const void *key, 
+    const void *value, 
+    __u64 flags
+) = (void *) 2;
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `map` | Pointer to map definition |
+| `key` | Pointer to key |
+| `value` | Pointer to value |
+| `flags` | Behavior flags |
+
+**Flags:**
+
+| Flag | Behavior |
+|------|----------|
+| `BPF_ANY` | Create or update (default) |
+| `BPF_NOEXIST` | Only create if key doesn't exist |
+| `BPF_EXIST` | Only update if key already exists |
+
+> [!warning] Array Map Limitation
+> `BPF_NOEXIST` is not supported for `BPF_MAP_TYPE_ARRAY` since all keys always exist.
+
+**Returns:** `0` on success, negative error on failure.
+
+---
+
+#### bpf_map_lookup_elem
+
+> [!info] Definition
+> Look up a value by key in an eBPF map.
+
+```c
+static void *(* const bpf_map_lookup_elem)(
+    void *map, 
+    const void *key
+) = (void *) 1;
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `map` | Pointer to map definition |
+| `key` | Pointer to key |
+
+**Returns:** Pointer to map value, or `NULL` if not found.
+
+> [!warning] CRITICAL: NULL Check Required
+> The verifier requires explicit NULL checking before dereferencing the returned pointer. Always check `if (!ptr) return 0;` before using the result.
+
+> [!warning] Race Conditions
+> The returned pointer is a direct reference to kernel memory (not a copy). Modifications are automatically persisted, but concurrent access to non-per-CPU maps requires atomic instructions or spinlocks.
+
+---
+
+#### bpf_map_delete_elem
+
+> [!info] Definition
+> Delete a key-value pair from an eBPF map.
+
+```c
+static long (* const bpf_map_delete_elem)(
+    void *map, 
+    const void *key
+) = (void *) 3;
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `map` | Pointer to map definition |
+| `key` | Pointer to key |
+
+**Returns:** `0` on success, negative error on failure.
+
+> [!danger] Memory Leak Prevention
+> eBPF hash maps have bounded size (`max_entries`). Without deletion, the map fills up and `bpf_map_update_elem` fails silently, dropping events. **Always delete entries after processing.**
 
 ---
 
