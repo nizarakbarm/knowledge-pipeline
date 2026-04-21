@@ -234,16 +234,16 @@ sequenceDiagram
     participant K as Kernel
     participant E as eBPF Program
     
-    U->>B: Type command
-    B->>R: Call readline()
-    Note over K: uretprobe attached
-    R-->>B: Return input string
-    R-->>K: Trigger uretprobe
-    K->>E: Execute BPF handler
-    E->>E: bpf_probe_read_user_str(ret)
-    E->>K: bpf_printk output
-    K-->>B: Return to bash
-    B->>B: Process command
+    U->>B: [1] Type command
+    B->>R: [2] Call readline()
+    Note over K: [3] uretprobe attached
+    R-->>B: [4] Return input string
+    R-->>K: [5] Trigger uretprobe
+    K->>E: [6] Execute BPF handler
+    E->>E: [7] bpf_probe_read_user_str(ret)
+    E->>K: [8] bpf_printk output
+    K-->>B: [9] Return to bash
+    B->>B: [10] Process command
 ```
 
 ---
@@ -302,6 +302,41 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
      bash-12345    [000] .... 12345.678901: bpf_trace_printk: PID: 12345, Comm: bash, Line: ls -la
      bash-12345    [000] .... 12345.678902: bpf_trace_printk: PID: 12345, Comm: bash, Line: echo "hello world"
 ```
+
+---
+
+## Troubleshooting
+
+> [!warning] Symbol Not Found Error
+> If you encounter `elf: failed to find symbol 'readline' in '/bin/bash'`, modern Linux distributions dynamically link bash against `libreadline` instead of embedding it directly.
+
+### Solution
+
+**Step 1:** Find the actual library path:
+
+```bash
+ldd /bin/bash | grep readline
+# Output: libreadline.so.8 => /lib64/libreadline.so.8
+```
+
+**Step 2:** Update the SEC macro in your eBPF code:
+
+```c
+// Change from:
+SEC("uretprobe//bin/bash:readline")
+
+// To:
+SEC("uretprobe//lib64/libreadline.so.8:readline")
+```
+
+**Step 3:** Recompile and run:
+
+```bash
+ecc bashreadline.bpf.c
+sudo ecli run package.json
+```
+
+This works because uprobe instruments the **binary file** (`libreadline.so.8`) rather than the process (`/bin/bash`), and all processes using that library will be traced.
 
 ---
 
