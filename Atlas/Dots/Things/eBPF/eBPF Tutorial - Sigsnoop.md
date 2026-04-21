@@ -97,51 +97,7 @@ struct {
 
 ---
 
-## Map Helpers Deep Dive
 
-### bpf_map_update_elem
-
-```c
-bpf_map_update_elem(&values, &tid, &event, BPF_ANY);
-```
-
-**Purpose:** Insert or update a key-value pair in the hash map.
-
-| Parameter | Description |
-|-----------|-------------|
-| `&values` | Pointer to the map |
-| `&tid` | Key (TID) |
-| `&event` | Value (signal data) |
-| `BPF_ANY` | Create new or update existing |
-
-**Used in:** `probe_entry` — stores signal info when syscall starts.
-
-### bpf_map_lookup_elem
-
-```c
-eventp = bpf_map_lookup_elem(&values, &tid);
-```
-
-**Purpose:** Retrieve value by key from the hash map.
-
-**Returns:** Pointer to value, or NULL if key not found.
-
-**Used in:** `probe_exit` — retrieves stored signal info to correlate with return value.
-
-### bpf_map_delete_elem
-
-```c
-bpf_map_delete_elem(&values, &tid);
-```
-
-**Purpose:** Remove key-value pair from the map.
-
-> [!danger] Memory Leak Prevention
-> **CRITICAL:** eBPF hash maps have strictly bounded size (10,240 entries). Without deletion, the map fills up and subsequent `bpf_map_update_elem` calls **fail silently**, dropping new tracing events.
-
-**Used in:** `probe_exit` — **must delete after processing** to free map entry.
-
----
 
 ## State Correlation Flow
 
@@ -368,9 +324,9 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
 ---
 
-### eBPF Map Helpers Deep Dive
+## eBPF Map Helpers Deep Dive
 
-#### bpf_map_update_elem
+### bpf_map_update_elem
 
 > [!info] Definition
 > Insert or update a key-value pair in an eBPF map.
@@ -404,9 +360,15 @@ static long (* const bpf_map_update_elem)(
 
 **Returns:** `0` on success, negative error on failure.
 
+**Sigsnoop usage:**
+```c
+bpf_map_update_elem(&values, &tid, &event, BPF_ANY);
+```
+Used in `probe_entry` to store signal info when syscall starts.
+
 ---
 
-#### bpf_map_lookup_elem
+### bpf_map_lookup_elem
 
 > [!info] Definition
 > Look up a value by key in an eBPF map.
@@ -431,9 +393,15 @@ static void *(* const bpf_map_lookup_elem)(
 > [!warning] Race Conditions
 > The returned pointer is a direct reference to kernel memory (not a copy). Modifications are automatically persisted, but concurrent access to non-per-CPU maps requires atomic instructions or spinlocks.
 
+**Sigsnoop usage:**
+```c
+eventp = bpf_map_lookup_elem(&values, &tid);
+```
+Used in `probe_exit` to retrieve stored signal info and correlate with return value.
+
 ---
 
-#### bpf_map_delete_elem
+### bpf_map_delete_elem
 
 > [!info] Definition
 > Delete a key-value pair from an eBPF map.
@@ -454,6 +422,12 @@ static long (* const bpf_map_delete_elem)(
 
 > [!danger] Memory Leak Prevention
 > eBPF hash maps have bounded size (`max_entries`). Without deletion, the map fills up and `bpf_map_update_elem` fails silently, dropping events. **Always delete entries after processing.**
+
+**Sigsnoop usage:**
+```c
+bpf_map_delete_elem(&values, &tid);
+```
+Used in `probe_exit` — **must delete after processing** to free map entry.
 
 ---
 
