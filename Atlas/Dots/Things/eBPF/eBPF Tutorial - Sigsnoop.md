@@ -227,17 +227,17 @@ int kill_exit(struct trace_event_raw_sys_exit *ctx)
 
 ### Code Breakdown
 
-| Component | Purpose |
-|-----------|---------|
-| `struct event` | Signal data: sender, target, signal number, return value, command name |
-| `BPF_MAP_TYPE_HASH` | Key-value storage for entry/exit correlation |
-| `tid = (__u32)pid_tgid` | Extract TID (lower 32 bits) from pid_tgid |
-| `bpf_map_update_elem` | Store event at syscall entry |
-| `bpf_map_lookup_elem` | Retrieve event at syscall exit |
-| `bpf_map_delete_elem` | **Prevent memory leak** — remove after processing |
-| `bpf_get_current_comm` | Get sender's command name |
-| `ctx->args[0]` | Target PID (from tracepoint args) |
-| `ctx->args[1]` | Signal number (from tracepoint args) |
+| Component               | Purpose                                                                |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `struct event`          | Signal data: sender, target, signal number, return value, command name |
+| `BPF_MAP_TYPE_HASH`     | Key-value storage for entry/exit correlation                           |
+| `tid = (__u32)pid_tgid` | Extract TID (lower 32 bits) from pid_tgid                              |
+| `bpf_map_update_elem`   | Store event at syscall entry                                           |
+| `bpf_map_lookup_elem`   | Retrieve event at syscall exit                                         |
+| `bpf_map_delete_elem`   | **Prevent memory leak** — remove after processing                      |
+| `bpf_get_current_comm`  | Get sender's command name                                              |
+| `ctx->args[0]`          | Target PID (from tracepoint args)                                      |
+| `ctx->args[1]`          | Signal number (from tracepoint args)                                   |
 
 ---
 
@@ -428,6 +428,110 @@ static long (* const bpf_map_delete_elem)(
 bpf_map_delete_elem(&values, &tid);
 ```
 Used in `probe_exit` — **must delete after processing** to free map entry.
+
+---
+
+## Intermezzo: Map Declaration Types
+
+> [!info] `__u32`
+> Defined in kernel headers (`<linux/types.h>`, included via `vmlinux.h`):
+> ```c
+> typedef unsigned int __u32;
+> ```
+
+> [!info] `__uint` and `__type`
+> BTF map declaration macros from `<bpf/bpf_helpers.h>`:
+> ```c
+> #define __uint(name, val) int (*name)[val]
+> #define __type(name, val) typeof(val) *name
+> ```
+
+### How They Work
+
+The macros enable BTF-based map configuration:
+
+```c
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);      // → int (*type)[BPF_MAP_TYPE_HASH]
+    __uint(max_entries, 10240);           // → int (*max_entries)[10240]
+    __type(key, __u32);                   // → typeof(__u32) *key
+    __type(value, struct event);          // → typeof(struct event) *value
+} values SEC(".maps");
+```
+
+### Why Macros Instead of Direct API Calls?
+
+**Without macros** (manual approach):
+```c
+// Verbose, error-prone manual setup
+int map_fd = bpf_map_create(
+    BPF_MAP_TYPE_HASH,    // map_type
+    "values",             // map_name
+    sizeof(__u32),        // key_size
+    sizeof(struct event), // value_size
+    10240,                // max_entries
+    NULL                  // opts
+);
+// Must manually track fd, handle errors, validate sizes...
+```
+
+**With macros** (declarative approach):
+```c
+// Clean, type-safe, compile-time validated
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, __u32);
+    __type(value, struct event);
+} values SEC(".maps");
+```
+
+**Benefits:**
+- **Type safety:** `__type(key, __u32)` ensures key size matches `__u32` exactly
+- **Zero boilerplate:** No manual `bpf_map_create()` calls or fd management
+- **Compile-time validation:** BTF generation catches type mismatches at build time
+- **Self-documenting:** Map configuration lives with the map definition
+
+### Verification
+
+```bash
+# Check kernel types
+grep -n "__u32" /sys/kernel/btf/vmlinux
+
+# Check libbpf macros
+grep -n "__uint\|__type" /usr/include/bpf/bpf_helpers.h
+```
+
+---
+
+### Function Signature Chain Flow
+
+`bpftrace -lv` discovers tracepoint arguments (e.g., `pid_t pid`, `int sig`), which determines the entire chain: which `ctx->args[]` to read → what types to cast → probe function signatures.
+
+```mermaid
+flowchart LR
+    A["bpftrace -lv: sys_enter_kill"] --> B["Fields: pid, sig"]
+    B --> C["kill_entry: args[0], args[1]"]
+    C --> D["probe_entry(tpid, sig)"]
+
+    E["bpftrace -lv: sys_exit_kill"] --> F["Fields: ret"]
+    F --> G["kill_exit: ctx->ret"]
+    G --> H["probe_exit(ctx, ret)"]
+```
+
+**Mapping Table:**
+
+| bpftrace Field | Tracepoint Context | kill_entry/kill_exit | probe_entry/probe_exit |
+|----------------|-------------------|----------------------|------------------------|
+| `pid_t pid` | `ctx->args[0]` | `(pid_t)ctx->args[0]` | `pid_t tpid` |
+| `int sig` | `ctx->args[1]` | `(int)ctx->args[1]` | `int sig` |
+| `long ret` | `ctx->ret` | `ctx->ret` | `int ret` |
+
+**Key Points:**
+- **Discovery:** `bpftrace -lv` reveals available tracepoint fields
+- **Extraction:** SEC functions (kill_entry/kill_exit) pull from `ctx->args[]` or `ctx->ret`
+- **Forwarding:** Cast and pass to probe functions
+- **Processing:** probe functions work with typed parameters
+- **Type casting:** Bridges the gap between tracepoint types and function parameters (e.g., `long ret` → `int ret`)
 
 ---
 
