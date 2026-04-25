@@ -127,6 +127,9 @@ char comm[TASK_COMM_LEN];
 bpf_probe_read_kernel_str(comm, sizeof(comm), BPF_CORE_READ(task, comm));
 ```
 
+> [!info] String Reading Helpers
+> For details on `bpf_probe_read_kernel_str` and related string helpers, see [[eBPF Helper - bpf_probe_read_str|bpf_probe_read_str]].
+
 ### Pattern 4: Credential Information
 
 ```c

@@ -141,6 +141,9 @@ bpf_probe_read_user_str(&str, sizeof(str), ret);
 
 This helper safely copies the string from user-space memory into the eBPF program's stack, performing all necessary validation.
 
+> [!info] See Also
+> For a comprehensive guide on all string reading helpers including `bpf_probe_read_str` and `bpf_probe_read_kernel_str`, see [[eBPF Helper - bpf_probe_read_str|bpf_probe_read_str]].
+
 ---
 
 ## Performance Overhead

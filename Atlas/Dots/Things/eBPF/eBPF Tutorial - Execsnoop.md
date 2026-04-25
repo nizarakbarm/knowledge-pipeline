@@ -226,6 +226,8 @@ static long bpf_perf_event_output(
 > Explicit struct alignment (`#pragma pack` or manual padding) was a common practice in the past when cross-compiling between different architectures or compiler versions. Modern compilers handle natural alignment automatically, making this less critical for eBPF programs where both kernel and user-space code use the same toolchain and header files.
 >
 > For a deeper look at the relocation mechanics used here, see [[eBPF Concept - BPF_CORE_READ|BPF_CORE_READ]].
+>
+> For details on safely copying strings from kernel memory, see [[eBPF Helper - bpf_probe_read_str|bpf_probe_read_str]].
 
 ---
 
