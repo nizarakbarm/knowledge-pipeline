@@ -138,6 +138,48 @@ int tracepoint_syscalls_sys_enter_execve(struct trace_event_raw_sys_enter* ctx)
 char LICENSE[] SEC("license") = "GPL";
 ```
 
+### Where Does `ctx->args[0]` Come From?
+
+The `ctx` parameter is a pointer to `struct trace_event_raw_sys_enter`, defined in `vmlinux.h`:
+
+```c
+struct trace_event_raw_sys_enter {
+    struct trace_entry ent;
+    long int id;                    // Syscall number
+    long unsigned int args[6];      // Syscall arguments
+    char __data[0];
+};
+```
+
+For the `sys_enter_execve` tracepoint specifically, `bpftrace -vl` reveals the argument mapping:
+
+```bash
+$ bpftrace -vl "tracepoint:syscalls:sys_enter_execve"
+tracepoint:syscalls:sys_enter_execve
+    int __syscall_nr
+    const char * filename      ← args[0]
+    const char *const * argv   ← args[1]
+    const char *const * envp   ← args[2]
+```
+
+**Argument mapping:**
+
+| `args[]` | bpftrace Field | Description |
+|----------|---------------|-------------|
+| `args[0]` | `filename` | Command being executed (e.g., `/bin/ls`) |
+| `args[1]` | `argv` | Argument array pointer |
+| `args[2]` | `envp` | Environment array pointer |
+
+**In the code:**
+```c
+// ctx->args[0] holds the filename pointer
+char *cmd_ptr = (char *) BPF_CORE_READ(ctx, args[0]);
+```
+
+**Why `BPF_CORE_READ(ctx, args[0])` instead of `ctx->args[0]`?**
+
+Because `ctx` points to kernel memory. Direct dereferencing (`ctx->args[0]`) could access invalid memory and crash the kernel. `BPF_CORE_READ()` safely copies the value via `bpf_probe_read_kernel()`.
+
 ### Code Breakdown
 
 | Component                                | Purpose                                  |
