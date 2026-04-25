@@ -1,0 +1,12 @@
+{
+	"nodes":[
+		{"id":"a1b2c3d4e5f67890","type":"text","text":"# bpf_get_current_uid_gid() Return Value\n\n64-bit integer (__u64) bit structure","x":0,"y":0,"width":600,"height":80,"color":"4"},
+		{"id":"b2c3d4e5f6a78901","type":"text","text":"## Bits 32-63\n\n**GID** (Group ID)\n\n`gid = val >> 32`","x":0,"y":120,"width":300,"height":100,"color":"2"},
+		{"id":"c3d4e5f6a7b89012","type":"text","text":"## Bits 0-31\n\n**UID** (User ID)\n\n`uid = val & 0xFFFFFFFF`","x":300,"y":120,"width":300,"height":100,"color":"5"},
+		{"id":"d4e5f6a7b8c90123","type":"text","text":"## Extraction\n\n```c\n// Full extraction\nuid_t uid = bpf_get_current_uid_gid() & 0xFFFFFFFF;\ngid_t gid = bpf_get_current_uid_gid() >> 32;\n\n// Execsnoop truncation (UID only)\nuid_t uid = (u32)bpf_get_current_uid_gid();\n```","x":0,"y":250,"width":640,"height":290,"color":"6"}
+	],
+	"edges":[
+		{"id":"e5f6a7b8c9d01234","fromNode":"b2c3d4e5f6a78901","fromSide":"bottom","toNode":"d4e5f6a7b8c90123","toSide":"top","toEnd":"none"},
+		{"id":"f6a7b8c9d0e12345","fromNode":"c3d4e5f6a7b89012","fromSide":"bottom","toNode":"d4e5f6a7b8c90123","toSide":"top","toEnd":"none"}
+	]
+}

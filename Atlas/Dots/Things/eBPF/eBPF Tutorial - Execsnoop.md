@@ -33,14 +33,14 @@ source:
 > [!info] Streaming vs Storage
 > Unlike Hash Maps (used in sigsnoop for entry/exit correlation), execsnoop uses `BPF_MAP_TYPE_PERF_EVENT_ARRAY` to **stream events directly to user-space**.
 
-| Aspect | Hash Map (sigsnoop) | Perf Event Array (execsnoop) |
-|--------|---------------------|------------------------------|
-| **Pattern** | Entry/exit correlation | Streaming to user-space |
-| **CPU handling** | Shared map (contention) | Per-CPU buffers (no lock) |
-| **Data flow** | Kernel ↔ Kernel | Kernel → User-space |
-| **User-space** | Not involved during tracing | Actively polls perf buffer |
-| **Lost events** | Map full = silent drop | Buffer full = explicit lost count |
-| **Use case** | State correlation | Real-time monitoring |
+| Aspect           | Hash Map (sigsnoop)         | Perf Event Array (execsnoop)      |
+| ---------------- | --------------------------- | --------------------------------- |
+| **Pattern**      | Entry/exit correlation      | Streaming to user-space           |
+| **CPU handling** | Shared map (contention)     | Per-CPU buffers (no lock)         |
+| **Data flow**    | Kernel ↔ Kernel             | Kernel → User-space               |
+| **User-space**   | Not involved during tracing | Actively polls perf buffer        |
+| **Lost events**  | Map full = silent drop      | Buffer full = explicit lost count |
+| **Use case**     | State correlation           | Real-time monitoring              |
 
 ### Per-CPU Architecture
 
@@ -140,18 +140,18 @@ char LICENSE[] SEC("license") = "GPL";
 
 ### Code Breakdown
 
-| Component | Purpose |
-|-----------|---------|
-| `BPF_MAP_TYPE_PERF_EVENT_ARRAY` | Per-CPU ring buffer for streaming events |
-| `key_size = sizeof(u32)` | CPU number as key |
-| `value_size = sizeof(u32)` | File descriptor |
-| `bpf_get_current_uid_gid()` | Get user ID |
-| `bpf_get_current_pid_tgid()` | Get process/thread ID |
-| `bpf_get_current_task()` | Get current task_struct |
-| `BPF_CORE_READ(task, real_parent, tgid)` | Read parent process ID |
-| `bpf_probe_read_str()` | Read command from user-space |
-| `bpf_perf_event_output()` | Push event to perf buffer |
-| `BPF_F_CURRENT_CPU` | Route to current CPU's buffer |
+| Component                                | Purpose                                  |
+| ---------------------------------------- | ---------------------------------------- |
+| `BPF_MAP_TYPE_PERF_EVENT_ARRAY`          | Per-CPU ring buffer for streaming events |
+| `key_size = sizeof(u32)`                 | CPU number as key                        |
+| `value_size = sizeof(u32)`               | File descriptor                          |
+| `bpf_get_current_uid_gid()`              | Get user ID                              |
+| `bpf_get_current_pid_tgid()`             | Get process/thread ID                    |
+| `bpf_get_current_task()`                 | Get current task_struct                  |
+| `BPF_CORE_READ(task, real_parent, tgid)` | Read parent process ID                   |
+| `bpf_probe_read_str()`                   | Read command from user-space             |
+| `bpf_perf_event_output()`                | Push event to perf buffer                |
+| `BPF_F_CURRENT_CPU`                      | Route to current CPU's buffer            |
 
 ---
 
@@ -182,6 +182,55 @@ static long bpf_perf_event_output(
 
 > [!tip] Historical Context
 > Explicit struct alignment (`#pragma pack` or manual padding) was a common practice in the past when cross-compiling between different architectures or compiler versions. Modern compilers handle natural alignment automatically, making this less critical for eBPF programs where both kernel and user-space code use the same toolchain and header files.
+>
+> For a deeper look at the relocation mechanics used here, see [[eBPF Concept - BPF_CORE_READ|BPF_CORE_READ]].
+
+---
+
+### Helper: bpf_get_current_uid_gid
+
+> [!info] `bpf_get_current_uid_gid()`
+> Returns a 64-bit integer (`__u64`) containing the current process's User ID (UID) and Group ID (GID) packed together:
+> - **Upper 32 bits (bits 32-63):** `gid` (Group ID)
+> - **Lower 32 bits (bits 0-31):** `uid` (User ID)
+>
+> Similar to `bpf_get_current_pid_tgid()`, this helper packs two 32-bit values into one 64-bit return for atomic retrieval.
+
+![[eBPF Tutorial - Execsnoop - UID GID.canvas]]
+
+```mermaid
+block-beta
+    columns 4
+    space space space space
+    gid1["GID (bits 32-63)"]:2
+    uid1["UID (bits 0-31)"]:2
+    space space space space
+    gid2["Group ID"]:2
+    uid2["User ID"]:2
+    space space space space
+
+    gid1 --> gid2
+    uid1 --> uid2
+```
+
+**Full extraction:**
+```c
+// Extract lower 32 bits (UID)
+uid_t uid = bpf_get_current_uid_gid() & 0xFFFFFFFF;
+
+// Extract upper 32 bits (GID)
+gid_t gid = bpf_get_current_uid_gid() >> 32;
+```
+
+**Execsnoop usage (truncation):**
+```c
+// In execsnoop, only UID is needed
+// Casting to u32 truncates to lower 32 bits automatically
+uid_t uid = (u32)bpf_get_current_uid_gid();
+```
+
+> [!tip] Why truncation works
+> `(u32)` casts the 64-bit return to 32-bit, discarding the upper 32 bits (GID). This is equivalent to `& 0xFFFFFFFF` but more concise when you only need the UID.
 
 ---
 
@@ -189,14 +238,42 @@ static long bpf_perf_event_output(
 
 ```c
 struct event {
-    int pid;              // 4 bytes
-    int ppid;             // 4 bytes
-    int uid;              // 4 bytes
-    int retval;           // 4 bytes
-    bool is_exit;         // 1 byte
-    char comm[16];        // 16 bytes
-};                        // Total: 33 bytes (padded to 36)
+    int pid;              // 4 bytes, offset 0-3
+    int ppid;             // 4 bytes, offset 4-7
+    int uid;              // 4 bytes, offset 8-11
+    int retval;           // 4 bytes, offset 12-15
+    bool is_exit;         // 1 byte,  offset 16
+    char comm[16];        // 16 bytes, offset 17-32
+};                        // Data: 33 bytes, Total: 36 bytes (with 3 bytes padding)
 ```
+
+**Padding Breakdown:**
+
+| Member | Size | Offset | Notes |
+|--------|------|--------|-------|
+| `pid` | 4 | 0-3 | `int` alignment = 4 |
+| `ppid` | 4 | 4-7 | `int` alignment = 4 |
+| `uid` | 4 | 8-11 | `int` alignment = 4 |
+| `retval` | 4 | 12-15 | `int` alignment = 4 |
+| `is_exit` | 1 | 16 | `bool` alignment = 1 |
+| `comm[16]` | 16 | 17-32 | `char` alignment = 1 |
+| **padding** | **3** | **33-35** | **Largest alignment = 4, so total must be multiple of 4** |
+| **Total** | **36** | **0-35** | **Verified with `sizeof(struct event)`** |
+
+**Why 3 bytes of padding?**
+
+The struct's **largest alignment requirement is 4** (from `int`). The total size must be a multiple of 4 so arrays are properly aligned:
+
+```c
+struct event events[2];
+// events[0] at offset 0
+// events[1] at offset 36 ✓ (divisible by 4)
+```
+
+If size were 33:
+- `events[1]` would start at offset 33
+- `events[1].pid` at offset 33 — **not divisible by 4**
+- Misaligned memory access on most CPUs
 
 > [!info] Why This Matters
 > `bpf_perf_event_output()` copies raw memory. User-space must read the exact same structure layout. Using a shared header file (`execsnoop.h`) ensures both sides agree on offsets and sizes.

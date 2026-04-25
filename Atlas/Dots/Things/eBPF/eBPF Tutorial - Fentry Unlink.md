@@ -163,6 +163,8 @@ int BPF_PROG(do_unlinkat_exit, int dfd, struct filename *name, long ret)
 
 > [!info] `BPF_PROG(func, ...)`
 > Similar to `BPF_KPROBE`, but designed specifically for fentry/fexit. It automatically unwraps parameters so you can define handlers with the exact same signature as the original kernel function.
+>
+> For a deeper look at the relocation mechanics used here, see [[eBPF Concept - BPF_CORE_READ|BPF_CORE_READ]].
 
 ---
 

@@ -86,6 +86,8 @@ Attaches to `do_unlinkat` return to capture:
 
 > [!info] `BPF_CORE_READ(ptr, field)`
 > Replaces unsafe pointer dereferences (`ptr->field`) with verified `bpf_probe_read` calls under the hood. Also emits CO-RE relocations so the field offset is recomputed at load time if the kernel structure layout differs.
+>
+> For a deeper look at the relocation mechanics used here, see [[eBPF Concept - BPF_CORE_READ|BPF_CORE_READ]].
 
 ### Execution Flow
 
