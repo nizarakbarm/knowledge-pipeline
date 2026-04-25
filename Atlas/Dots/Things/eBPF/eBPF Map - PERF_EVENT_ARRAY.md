@@ -232,6 +232,104 @@ static long bpf_perf_event_output(
 
 ---
 
+## BPF_F_CURRENT_CPU: Per-CPU Routing
+
+> [!info] Runtime Routing Flag
+> `BPF_F_CURRENT_CPU` is **not** a map creation flag — it is passed to `bpf_perf_event_output()` at runtime to route events to the current CPU's dedicated ring buffer.
+
+### Why It Matters
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Cache locality** | Events written to the local CPU's buffer stay in that CPU's cache domain. No cache-line bouncing between cores. |
+| **Lock-free concurrency** | Each CPU owns its own ring buffer. Multiple CPUs can write simultaneously without locks or atomic operations. |
+| **Simpler polling** | User-space polls per-CPU buffers and naturally receives events grouped by the CPU that generated them. |
+
+### The Alternative (Without BPF_F_CURRENT_CPU)
+
+If you specify an explicit CPU index, **all events go to one CPU's buffer**:
+
+```c
+// BAD: All events routed to CPU 0's buffer
+bpf_perf_event_output(ctx, &events, 0, &data, sizeof(data));
+```
+
+**Problems:**
+- Single buffer becomes a hot spot
+- Cross-CPU memory access degrades performance
+- User-space must parse mixed events from all CPUs
+
+### The Optimal Pattern (With BPF_F_CURRENT_CPU)
+
+```c
+// GOOD: Route to whichever CPU is currently executing
+bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &data, sizeof(data));
+```
+
+**Result:** Each CPU writes to its own buffer, maximizing throughput and minimizing latency.
+
+### Per-CPU Routing Visualization
+
+```mermaid
+graph LR
+    subgraph CPU0["CPU 0"]
+        E0["eBPF Program"]
+        B0["Ring Buffer 0"]
+    end
+
+    subgraph CPU1["CPU 1"]
+        E1["eBPF Program"]
+        B1["Ring Buffer 1"]
+    end
+
+    subgraph CPU2["CPU 2"]
+        E2["eBPF Program"]
+        B2["Ring Buffer 2"]
+    end
+
+    subgraph CPU3["CPU 3"]
+        E3["eBPF Program"]
+        B3["Ring Buffer 3"]
+    end
+
+    E0 -->|BPF_F_CURRENT_CPU| B0
+    E1 -->|BPF_F_CURRENT_CPU| B1
+    E2 -->|BPF_F_CURRENT_CPU| B2
+    E3 -->|BPF_F_CURRENT_CPU| B3
+
+    B0 --> P["User-Space Poller"]
+    B1 --> P
+    B2 --> P
+    B3 --> P
+```
+
+### Example: Execsnoop
+
+In [[eBPF Tutorial - Execsnoop|Execsnoop]], `BPF_F_CURRENT_CPU` ensures process execution events are written to the local CPU's buffer:
+
+```c
+struct {
+    __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+    __uint(key_size, sizeof(u32));
+    __uint(value_size, sizeof(u32));
+} events SEC(".maps");
+
+SEC("tracepoint/syscalls/sys_enter_execve")
+int tracepoint__syscalls__sys_enter_execve(struct trace_event_raw_sys_enter *ctx)
+{
+    struct event e = {};
+    // ... populate event ...
+
+    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &e, sizeof(e));
+    return 0;
+}
+```
+
+> [!tip] No Explicit CPU Management
+> With `BPF_F_CURRENT_CPU`, the eBPF program never needs to know how many CPUs exist or which one it's running on. The flag handles routing automatically based on the current execution context.
+
+---
+
 ## Lost Events
 
 > [!warning] Ring Buffer Overruns
