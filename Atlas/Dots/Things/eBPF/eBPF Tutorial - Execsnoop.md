@@ -107,6 +107,9 @@ struct event {
 #include <bpf/bpf_core_read.h>
 #include "execsnoop.h"
 
+// Required for GPL-only helpers like bpf_get_current_task()
+char LICENSE[] SEC("license") = "GPL";
+
 struct {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
     __uint(key_size, sizeof(u32));
@@ -125,7 +128,7 @@ int tracepoint_syscalls_sys_enter_execve(struct trace_event_raw_sys_enter* ctx)
     id = bpf_get_current_pid_tgid();
     tgid = id >> 32;
 
-    event.pid = tgid;
+    event.pid = tgid;  // tgid = userspace-visible PID
     event.uid = uid;
     task = (struct task_struct*)bpf_get_current_task();
     event.ppid = BPF_CORE_READ(task, real_parent, tgid);
@@ -134,9 +137,22 @@ int tracepoint_syscalls_sys_enter_execve(struct trace_event_raw_sys_enter* ctx)
     bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &event, sizeof(event));
     return 0;
 }
-
-char LICENSE[] SEC("license") = "GPL";
 ```
+
+> [!warning] GPL License Required
+> The `bpf_get_current_task()` helper is **GPL-only**. The `char LICENSE[] SEC("license") = "GPL";` line must appear **before** any `SEC()` definitions in the file. Placing it after the program (as in some older examples) will cause the verifier to reject the program with:
+> ```
+> cannot call GPL-restricted function from non-GPL compatible program
+> ```
+
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical. `bpf_get_current_pid_tgid()` packs `tgid` into the upper 32 bits, so
+> `>> 32` extracts the userspace PID.
+>
+> Execsnoop uses `tgid` for both `pid` and `ppid` to report the same IDs users see
+> in standard tools.
 
 ### Where Does `ctx->args[0]` Come From?
 
@@ -364,6 +380,40 @@ TIME     PID     PPID    UID     COMM
 21:28:30  40752  40751   1000    sh
 21:28:30  40753  40752   1000    cpuUsage.sh
 ```
+
+---
+
+## Intermezzo: Why `echo "test"` Shows as `sh`
+
+You may notice that `echo "test"` appears as `/usr/bin/sh` (or just `sh`) in the output, not `echo`.
+
+**The reason:** Bash (and most shells) implement `echo` as a **builtin command**, not an external binary. Builtins execute directly in the shell process without calling `execve()`.
+
+**What actually happens:**
+
+```bash
+$ echo "test"
+```
+
+1. Bash recognizes `echo` as a builtin
+2. Bash **forks** a child process (which inherits the parent's name)
+3. The child calls `execve("/bin/sh", ...)` to become a new shell
+4. That new shell then executes `echo "test"` as its own builtin
+5. **Execsnoop traces the `execve` that launched `sh`, not the builtin `echo`**
+
+**To trace `echo` explicitly, use the external binary:**
+
+```bash
+# Force external binary execution
+/usr/bin/echo "test"
+
+# Or use bash -c to force a new process
+bash -c 'echo test'
+```
+
+> [!tip] Shell Builtins vs External Commands
+> Common builtins: `echo`, `printf`, `test`, `[`, `kill`, `pwd`, `umask`
+> Use `type <command>` to check if a command is a builtin or external binary.
 
 > [!info] Direct Terminal Output
 > Unlike previous tutorials that required `cat /sys/kernel/debug/tracing/trace_pipe`, execsnoop outputs directly to the terminal via the perf event array.

@@ -176,8 +176,12 @@ static int probe_entry(pid_t tpid, int sig)
     tid = (__u32)pid_tgid;
     event.pid = pid_tgid >> 32;
     event.tpid = tpid;
+
     event.sig = sig;
     bpf_get_current_comm(event.comm, sizeof(event.comm));
+
+    // Note: pid_tgid >> 32 extracts tgid (userspace-visible PID)
+    //       (__u32)pid_tgid extracts tid (kernel thread ID)
     
     // Store in hash map using TID as key
     bpf_map_update_elem(&values, &tid, &event, BPF_ANY);
@@ -224,6 +228,15 @@ int kill_exit(struct trace_event_raw_sys_exit *ctx)
     return probe_exit(ctx, ctx->ret);
 }
 ```
+
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical. `bpf_get_current_pid_tgid()` packs `tgid` into the upper 32 bits, so
+> `>> 32` extracts the userspace PID.
+>
+> Sigsnoop uses **TID** (lower 32 bits) as the Hash Map key for entry/exit correlation,
+> and **TGID** (upper 32 bits) as the displayed PID in output.
 
 ### Code Breakdown
 

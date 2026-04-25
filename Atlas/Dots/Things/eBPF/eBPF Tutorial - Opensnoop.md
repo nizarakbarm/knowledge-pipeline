@@ -177,6 +177,12 @@ int tracepoint__syscalls__sys_enter_openat(struct trace_event_raw_sys_enter *ctx
     return 0;
 }
 
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical. `bpf_get_current_pid_tgid()` packs `tgid` into the upper 32 bits, so
+> `>> 32` extracts the userspace PID.
+
 /// "Trace open family syscalls."
 char LICENSE[] SEC("license") = "GPL";
 ```

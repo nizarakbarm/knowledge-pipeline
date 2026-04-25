@@ -135,6 +135,12 @@ int BPF_PROG(do_unlinkat_exit, int dfd, struct filename *name, long ret)
 | Component | Purpose |
 |-----------|---------|
 | `BPF_PROG` | Macro for fentry/fexit programs; handles parameter unwrapping automatically |
+
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical. `bpf_get_current_pid_tgid()` packs `tgid` into the upper 32 bits, so
+> `>> 32` extracts the userspace PID.
 | `name->name` | **Direct access** to `struct filename->name` without helper (fentry advantage) |
 
 > [!info] `struct filename`

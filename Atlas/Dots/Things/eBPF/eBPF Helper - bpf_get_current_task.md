@@ -106,9 +106,14 @@ int pid = BPF_CORE_READ(task, pid);
 
 ```c
 struct task_struct *task = (struct task_struct *)bpf_get_current_task();
-int pid = BPF_CORE_READ(task, pid);
-int tgid = BPF_CORE_READ(task, tgid);
+int pid = BPF_CORE_READ(task, pid);   // Kernel thread ID
+int tgid = BPF_CORE_READ(task, tgid); // Userspace-visible PID
 ```
+
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical.
 
 ### Pattern 2: Chained Pointer Access
 

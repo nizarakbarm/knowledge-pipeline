@@ -99,6 +99,11 @@ Runtime: reads correct memory location regardless of kernel version
 int ppid = BPF_CORE_READ(task, real_parent, tgid);
 ```
 
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical.
+
 **Expansion:**
 ```c
 // Step 1: Read task->real_parent (returns pointer)

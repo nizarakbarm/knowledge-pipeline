@@ -150,6 +150,12 @@ int BPF_KRETPROBE(do_unlinkat_exit, long ret)
 | `BPF_CORE_READ(name, name)` | Safe dereference: reads `name->name` with CO-RE relocation |
 | `bpf_get_current_pid_tgid() >> 32` | Extracts userspace PID from 64-bit TGID\|PID |
 | `SEC("kprobe/do_unlinkat")` | Attaches entry probe to `do_unlinkat` |
+
+> [!info] TGID vs PID
+> `tgid` (Thread Group ID) is the userspace-visible PID (what `ps` and `top` show).
+> In the kernel, `pid` is the actual thread ID. For single-threaded processes they're
+> identical. `bpf_get_current_pid_tgid()` packs `tgid` into the upper 32 bits, so
+> `>> 32` extracts the userspace PID.
 | `SEC("kretprobe/do_unlinkat")` | Attaches return probe to `do_unlinkat` |
 
 ---
