@@ -24,6 +24,7 @@ A Map of Content for eBPF (extended Berkeley Packet Filter) knowledge — kernel
 - [[PythonBPF]] — Python eBPF bindings and setup
 
 ## Related Topics
+- [[LLVM MOC]] — LLVM compiler infrastructure used for eBPF bytecode generation
 - [[Systems MOC (kit)]] — Complex systems and emergent behavior
 - [[Things]] — All things in the Ideaverse
 

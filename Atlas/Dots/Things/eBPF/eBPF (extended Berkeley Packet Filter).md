@@ -11,6 +11,7 @@ related:
   - "[[BCC eBPF]]"
   - "[[Atlas/Dots/Things/eBPF/eBPF Tutorial - Overview]]"
   - "[[Atlas/Dots/Things/eBPF/eBPF Tutorial - Hello World]]"
+  - "[[Atlas/Dots/Things/LLVM/LLVM Modular Compiler Infrastructure]]"
 in:
   - "[[Things]]"
   - "[[eBPF]]"
