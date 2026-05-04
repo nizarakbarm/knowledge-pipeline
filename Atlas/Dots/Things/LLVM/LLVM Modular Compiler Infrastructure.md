@@ -33,7 +33,7 @@ tags:
 - **Origin**: University of Illinois research project focused on modern **SSA-based compilation**
 - **Core design**: Built around **LLVM IR** — a source- and target-independent intermediate representation with a powerful optimizer
 - **Scope**: Massive umbrella project encompassing sub-projects like **Clang**, **Flang**, **LLD**, **LLDB**, **MLIR**, and **BOLT**
-- **Universal reach**: Handles use cases ranging from **Lua JIT** to **supercomputer Fortran**
+	- **Universal reach**: Handles use cases ranging from **Lua JIT** to **supercomputer Fortran**
 - **Recognition**: First developer meetings held in **2007**; received the **ACM Software System Award in 2012**
 
 ## Details
@@ -76,3 +76,30 @@ LLVM supports both **static compilation** (ahead-of-time) and **dynamic compilat
 ## Source
 
 Distilled from raw overview data — self-captured knowledge capture on compiler infrastructure.
+
+## Visual Summary
+
+```mermaid
+mindmap
+  root((LLVM))
+    Core IR
+      SSA Based
+      Source Target Independent
+    Frontends
+      Clang
+      Flang
+    Toolchain
+      LLD Linker
+      LLDB Debugger
+      BOLT Optimizer
+    Extensions
+      MLIR DSLs
+    Use Cases
+      Lua JIT
+      Fortran HPC
+      eBPF Kernel
+    History
+      UIUC Research
+      First Meetings
+      ACM Award
+```

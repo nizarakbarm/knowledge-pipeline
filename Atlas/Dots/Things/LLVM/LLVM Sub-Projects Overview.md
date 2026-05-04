@@ -95,3 +95,37 @@ Low-level runtime support and dynamic testing infrastructure.
 ## Source
 
 Distilled from raw LLVM sub-project documentation — technical reference capture on compiler infrastructure components.
+
+## Visual Summary
+
+```mermaid
+mindmap
+  root((LLVM Sub-Projects))
+    Core
+      LLVM IR
+      Optimizer
+      Code Generator
+    Frontends
+      Clang
+        C C++ ObjC
+        Static Analyzer
+      Flang
+        Fortran 77 to 2023
+        OpenMP CPU GPU
+    Runtime
+      libc++
+        C++11 C++14
+      compiler-rt
+        Sanitizers
+        Low Level Routines
+    Tools
+      LLD
+        Fast Linker
+      LLDB
+        Memory Efficient
+        GDB Alternative
+      BOLT
+        Post Link Optimizer
+      MLIR
+        DSL Backbone
+```

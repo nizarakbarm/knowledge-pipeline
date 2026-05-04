@@ -73,3 +73,27 @@ BOLT operates after linking (post-link) which enables optimizations that LTO can
 ## Source
 
 Distilled from LLVM tooling performance data — technical benchmarks and architecture descriptions for LLD, LLDB, and BOLT sub-projects.
+
+## Visual Summary
+
+```mermaid
+graph LR
+    subgraph LLD["LLD Linker vs GNU"]
+        A[GNU ld 104s] -->|20x faster| B[LLD 5.28s]
+        C[GNU gold 23.49s] -->|4x faster| B
+        D[GNU ld 209s+] -->|12x faster| E[LLD 16.7s]
+    end
+    
+    subgraph LLDB["LLDB vs GDB"]
+        F[GDB] -->|Slower<br/>More memory| G[LLDB]
+        H[Clang ASTs] --> G
+        I[LLVM JIT] --> G
+    end
+    
+    subgraph BOLT["BOLT Pipeline"]
+        J[Linked Binary] --> K[perf LBR/BRBE]
+        K --> L[CFG Reconstruction]
+        L --> M[Code Layout Opt]
+        M --> N[Optimized Binary]
+    end
+```

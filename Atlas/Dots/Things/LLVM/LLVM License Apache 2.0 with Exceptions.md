@@ -67,3 +67,35 @@ The license applies uniformly across the LLVM umbrella:
 
 - Distilled from raw license overview data
 - **Caveat**: Specific exception text not verified from primary LLVM legal documents; external knowledge supplemented. For authoritative text, consult [llvm.org](https://llvm.org) official license page or the `LICENSE.TXT` in the LLVM monorepo.
+
+## Visual Summary
+
+```mermaid
+mindmap
+  root((LLVM License))
+    Base
+      Apache 2.0
+    Exception A
+      GPLv2 Compatible
+      Link Combine OK
+      No Relicense Needed
+    Exception B
+      Runtime Exemption
+      Binaries Free
+      No Attribution
+    Scope
+      Core Libraries
+      Clang
+      LLDB
+      LLD
+      MLIR
+      BOLT
+      Flang
+    History
+      UIUC NCSA License
+      Migrated to Apache
+    Use Cases
+      Proprietary Software
+      Linux Kernel Modules
+      Closed Source Commercial
+```

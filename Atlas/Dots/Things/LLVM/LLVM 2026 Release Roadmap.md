@@ -76,3 +76,38 @@ LLVM maintains a highly active bi-weekly release schedule throughout 2026, split
 
 - Extracted from NotebookLM query of llvm.org documentation
 - Data current as of April 2026
+
+## Visual Summary
+
+```mermaid
+graph TD
+    subgraph Branch22["Branch 22.1.x"]
+        A[Jan 13 Branch Creation] --> B[Feb 24 22.1.0]
+        B --> C[Apr 21 22.1.4]
+        C --> D[May 5 22.1.5]
+        D --> E[May 19 22.1.6]
+        E --> F[Jun 2 22.1.7]
+        F --> G[Jun 16 22.1.8]
+        G --> H[Jun 30 22.1.9 End]
+    end
+    
+    subgraph Branch23["Branch 23.1.x"]
+        I[Jul 14 Branch Creation] --> J[Aug 25 23.1.0]
+        J --> K[Sep 8 23.1.1]
+        K --> L[Sep 22 23.1.2]
+        L --> M[Oct 6 23.1.3]
+        M --> N[Oct 20 23.1.4]
+        N --> O[Nov 3 23.1.5]
+        O --> P[Nov 17 23.1.6]
+        P --> Q[Dec 1 23.1.7]
+        Q --> R[Dec 15 23.1.8]
+        R --> S[Dec 29 23.1.9 End]
+    end
+    
+    H --> I
+    
+    subgraph Meetings["Developer Meetings"]
+        T[Apr 13-15 Spring Meeting]
+        U[Oct 26-28 US Meeting]
+    end
+```

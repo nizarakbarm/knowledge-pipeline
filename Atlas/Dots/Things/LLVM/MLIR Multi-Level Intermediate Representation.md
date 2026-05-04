@@ -84,3 +84,50 @@ MLIR explicitly avoids low-level machine code generation responsibilities:
 ## Source
 
 Distilled from raw MLIR technical documentation on heterogeneous architecture compilation, domain-specific compiler infrastructure, and LLVM subproject design principles.
+
+## Visual Summary
+
+```mermaid
+graph TD
+    subgraph High["High-Level IR"]
+        A[TensorFlow Graphs]
+        B[DSL Operations]
+        C[Dynamic Shapes]
+    end
+    
+    subgraph MLIR_T["MLIR Transformations"]
+        D[Dialect Lowering]
+        E[Loop Fusion]
+        F[Memory Tiling]
+        G[Vectorization]
+    end
+    
+    subgraph Hardware["Hardware Targets"]
+        H[CPU SIMD]
+        I[GPU CUDA]
+        J[TPU Accelerators]
+        K[FPGA Custom]
+    end
+    
+    subgraph LLVM_Backend["LLVM Backend"]
+        L[Register Allocation]
+        M[Instruction Scheduling]
+        N[Machine Code]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    G --> I
+    G --> J
+    G --> K
+    G --> L
+    L --> M
+    M --> N
+    N --> H
+    N --> I
+```

@@ -73,3 +73,37 @@ The recurring pattern across these adopters:
 ## Source
 
 Distilled from raw LLVM ecosystem data — technical reference on LLVM language frontends and external compiler infrastructure adoption.
+
+## Visual Summary
+
+```mermaid
+mindmap
+  root((LLVM Languages))
+    Native
+      Clang
+        C
+        C++
+        ObjC
+      Flang
+        Fortran
+    External
+      Systems
+        Rust
+        Swift
+        D
+      Scientific
+        Julia
+        Python
+        Haskell
+      Scripting
+        Lua
+        Ruby
+        PHP
+      Functional
+        Pure
+    Why LLVM
+      Battle Tested Optimizer
+      Multi Target Backends
+      Proven JIT
+      Modular Design
+```
