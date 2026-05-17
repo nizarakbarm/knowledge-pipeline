@@ -1,3 +1,18 @@
+---
+created: 2026-05-11
+up:
+  - "[[eBPF MOC]]"
+related:
+  - "[[Python-BPF Compiler Limitations]]"
+  - "[[Python-BPF bpf_printk]]"
+  - "[[BCC vs Python-BPF Benchmark Plan]]"
+in:
+  - "[[Atlas]]"
+tags: [ebpf, python-bpf, compiler, architecture, pipeline]
+---
+
+# Architecture
+
 A complete pipeline to write, compile, and load eBPF programs in Python
 1. Python Source Code
 	- Write BPF prog with decorators in Python

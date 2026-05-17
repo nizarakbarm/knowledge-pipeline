@@ -18,6 +18,7 @@ A Map of Content for LLVM (Low Level Virtual Machine) — modular compiler and t
 
 ## Core Concepts
 - [[LLVM Modular Compiler Infrastructure]] — Modular compiler infrastructure overview
+- [[Python-BPF Compiler Limitations]] — LLVM IR emission gaps in Python-BPF (missing GEP for array subscript, no atomicrmw)
 - [[LLVM Sub-Projects Overview]] — Detailed overview of LLVM sub-projects (Core, Clang, Flang, LLDB, libc++, compiler-rt)
 - [[Compiler Intermediate Representation]] — Deep dive into compiler IR, SSA form, abstraction levels, and LLVM IR specifics
 - [[LLVM External Language Ecosystem]] — External language adopters (Rust, Julia, Lua, Swift, etc.)

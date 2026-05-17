@@ -1,0 +1,39 @@
+# Claude Code runtime data
+CLAUDE.md.local
+settings.json
+history.jsonl
+projects/
+todos/
+*.log
+
+# Session data
+.session/
+.cache/
+
+# Local environment
+.env
+.env.local
+
+# Python virtual environments (for symlinked skills)
+.skills/**/.venv/
+.skills/**/venv/
+.skills/**/__pycache__/
+.skills/**/*.pyc
+
+# Node modules (for symlinked skills)
+.skills/**/node_modules/
+.skills/**/package-lock.json
+
+# Data files (for symlinked skills)
+.skills/**/data/
+.skills/**/data.json
+.skills/**/library.json
+.skills/**/auth_info.json
+
+# Browser state (for notebooklm)
+.skills/notebooklm/data/browser_state/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
