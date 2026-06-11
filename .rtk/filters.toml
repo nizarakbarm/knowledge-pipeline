@@ -1,0 +1,22 @@
+schema_version = 1
+
+[filters.grep]
+description = "Hide sensitive files from grep output"
+match_command = "^grep\b"
+strip_lines_matching = [
+  '.*\.obsidian.*:.*',     # Strip .obsidian files from grep output
+  '.*\.git.*:.*',          # Strip .git files from grep output
+  '.*\.env.*:.*',          # Strip .env files from grep output
+]
+
+[[tests.grep]]
+name = "hide sensitive files from grep output"
+input = """./src/main.rs:4: test function
+./.obsidian/workspace.json:1: test
+./.git/config:2: test
+./docs/README.md:10: test
+./.env:1: test
+./lib/utils.js:5: test"""
+expected = """./src/main.rs:4: test function
+./docs/README.md:10: test
+./lib/utils.js:5: test"""

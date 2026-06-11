@@ -36,6 +36,8 @@ A Map of Content for eBPF (extended Berkeley Packet Filter) knowledge — kernel
 - [[py-spy BCC vs Python-BPF Deep Analysis]] — Deep analysis: BCC 93.98% C++ backend vs Python-BPF 27% AST translation
 - [[run_perf_benchmark.sh]] — Automated benchmark execution script
 
+### Security & Enforcement
+- [[Tetragon Overview]] — Cilium Tetragon: real-time eBPF-based security observability & runtime enforcement
 ## Related Topics
 - [[LLVM MOC]] — LLVM compiler infrastructure used for eBPF bytecode generation
 - [[Systems MOC (kit)]] — Complex systems and emergent behavior

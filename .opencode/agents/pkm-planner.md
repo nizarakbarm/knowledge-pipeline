@@ -1,7 +1,7 @@
 ---
 description: PKM task planner - decomposes PKM organization tasks
 mode: subagent
-model: kimi-for-coding/k2p5
+model: opencode-go/deepseek-v4-pro
 temperature: 0.3
 ---
 

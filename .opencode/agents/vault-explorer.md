@@ -1,7 +1,7 @@
 ---
 description: Vault exploration specialist - searches and analyzes vault contents
 mode: subagent
-model: kimi-for-coding/k2p5
+model: opencode-go/qwen3.7-plus
 temperature: 0.3
 ---
 

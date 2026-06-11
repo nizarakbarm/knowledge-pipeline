@@ -1,0 +1,41 @@
+{
+	"nodes":[
+		{"id":"bind-group","type":"group","x":1100,"y":250,"width":1010,"height":860,"color":"6","label":"Binding Layer"},
+		{"id":"ir-group","type":"group","x":100,"y":250,"width":790,"height":540,"color":"4","label":"IR Layer"},
+		{"id":"notice-group","type":"group","x":600,"y":1200,"width":650,"height":190,"color":"2","label":"Notices"},
+		{"id":"ir-moc","type":"file","file":"Atlas/Maps/llvmlite-IR-Layer-MoC.md","x":150,"y":300,"width":350,"height":50,"color":"4"},
+		{"id":"bind-moc","type":"file","file":"Atlas/Maps/llvmlite-Binding-Layer-MoC.md","x":1150,"y":300,"width":400,"height":50,"color":"6"},
+		{"id":"root-001","type":"text","file":"Atlas/Maps/llvmlite-User-Guide-MoC.md","text":"# llvmlite\n## User Guide v0.46.0","x":660,"y":-80,"width":400,"height":100,"color":"5"},
+		{"id":"notice-dep","type":"text","text":"## Deprecation\nAPI changes","x":650,"y":1250,"width":240,"height":90,"color":"2"},
+		{"id":"notice-llvm20","type":"text","text":"## LLVM 20\nCompatibility","x":960,"y":1250,"width":240,"height":90,"color":"2"},
+		{"id":"bind-tr","type":"text","text":"## Type Refs\nType references","x":1150,"y":390,"width":260,"height":90,"color":"6"},
+		{"id":"bind-init","type":"text","text":"## Init FFI\nInitialization","x":1470,"y":390,"width":260,"height":90,"color":"6"},
+		{"id":"bind-dl","type":"text","text":"## Dynamic Libs\nLibrary loading","x":1790,"y":390,"width":260,"height":90,"color":"6"},
+		{"id":"bind-vr","type":"text","text":"## Value Refs\nValue references","x":1150,"y":520,"width":260,"height":90,"color":"6"},
+		{"id":"bind-context","type":"text","text":"## Context\nLLVM context","x":1470,"y":520,"width":260,"height":90,"color":"6"},
+		{"id":"bind-target","type":"text","text":"## Target\nTarget machine","x":1790,"y":520,"width":260,"height":90,"color":"6"},
+		{"id":"bind-modules","type":"text","text":"## Modules\nModule ops","x":1150,"y":650,"width":260,"height":90,"color":"6"},
+		{"id":"bind-of","type":"text","text":"## Object File\nObject emission","x":1470,"y":650,"width":260,"height":90,"color":"6"},
+		{"id":"bind-engine","type":"text","text":"## Engine\nExecution engine","x":1790,"y":650,"width":260,"height":90,"color":"6"},
+		{"id":"bind-pm","type":"text","text":"## Pass Manager\nOptimizations","x":1150,"y":840,"width":260,"height":90,"color":"6"},
+		{"id":"bind-anl","type":"text","text":"## Analysis\nAnalysis utils","x":1470,"y":840,"width":260,"height":90,"color":"6"},
+		{"id":"bind-pt","type":"text","text":"## Pass Timings\nProfiling","x":1790,"y":840,"width":260,"height":90,"color":"6"},
+		{"id":"bind-misc","type":"text","text":"## Misc\nUtilities","x":1150,"y":970,"width":260,"height":90,"color":"6"},
+		{"id":"bind-examples","type":"text","text":"## Examples\nJIT compilation","x":1470,"y":970,"width":260,"height":90,"color":"6"},
+		{"id":"ir-types","type":"text","text":"## IR Types\n`llvmlite.ir.Type`","x":540,"y":390,"width":300,"height":90,"color":"4"},
+		{"id":"ir-values","type":"text","text":"## IR Values\n`llvmlite.ir.Value`","x":540,"y":520,"width":300,"height":90,"color":"4"},
+		{"id":"ir-modules","type":"text","text":"## IR Modules\n`llvmlite.ir.Module`","x":540,"y":650,"width":300,"height":90,"color":"4"},
+		{"id":"ir-builder","type":"text","text":"## IR Builder\n`llvmlite.ir.IRBuilder`","x":80,"y":390,"width":280,"height":90,"color":"4"},
+		{"id":"ir-examples","type":"text","text":"## IR Examples\nSimple function","x":80,"y":565,"width":280,"height":90,"color":"4"}
+	],
+	"edges":[
+		{"id":"e-root-ir","fromNode":"root-001","fromSide":"bottom","toNode":"ir-group","toSide":"top"},
+		{"id":"e-root-bind","fromNode":"root-001","fromSide":"bottom","toNode":"bind-group","toSide":"top"},
+		{"id":"e-types-tr","fromNode":"ir-types","fromSide":"right","toNode":"bind-tr","toSide":"left","color":"3","label":"wraps"},
+		{"id":"e-values-vr","fromNode":"ir-values","fromSide":"right","toNode":"bind-vr","toSide":"left","color":"3","label":"wraps"},
+		{"id":"e-modules-bind","fromNode":"ir-modules","fromSide":"right","toNode":"bind-modules","toSide":"left","color":"3","label":"wraps"},
+		{"id":"e-builder-values","fromNode":"ir-builder","fromSide":"right","toNode":"ir-values","toSide":"left","color":"4","label":"produces"},
+		{"id":"e-engine-modules","fromNode":"bind-engine","fromSide":"left","toNode":"bind-modules","toSide":"right","color":"6","label":"executes"},
+		{"id":"e-pm-modules","fromNode":"bind-pm","fromSide":"top","toNode":"bind-modules","toSide":"bottom","color":"6","label":"optimizes"}
+	]
+}

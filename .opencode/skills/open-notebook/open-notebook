@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Open Notebook CLI wrapper
+# Automatically activates the virtual environment before running the Python CLI.
+# Usage: open-notebook <command> [options]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="${SCRIPT_DIR}/venv"
+
+# Check if the virtual environment exists
+if [ -f "${VENV_DIR}/bin/activate" ]; then
+    source "${VENV_DIR}/bin/activate"
+else
+    echo "Error: Virtual environment not found at ${VENV_DIR}" >&2
+    echo "Please run: python3 -m venv ${VENV_DIR}" >&2
+    exit 1
+fi
+
+python3 "${SCRIPT_DIR}/open_notebook.py" "$@"

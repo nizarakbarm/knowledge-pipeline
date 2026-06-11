@@ -1,0 +1,42 @@
+schema_version = 1
+
+[filters.ls]
+description = "Filter ls output for Ideaverse vault"
+match_command = "^ls\b"
+strip_lines_matching = [
+  "\\.obsidian",
+  "\\.git",
+  "\\.claude",
+  "\\.opencode",
+  "\\.rtk",
+  "\\.archive",
+  "^\\d+\\s+Spaces\\s",
+  "^\\d+\\s+x\\s",
+  "\\.DS_Store",
+  "\\.gitignore",
+  "Untitled\\.canvas",
+  "\\.env\\s",
+  "auth_info\\.json",
+  "library\\.json",
+  "package-lock\\.json",
+  "bun\\.lock",
+  "skills-lock\\.json",
+  "\\.logfmt",
+  "\\.bak\\s",
+  "\\.bak\\.md",
+  "\\.base",
+]
+
+[[tests.ls]]
+name = "filter vault noise"
+input = """755  .obsidian/
+755  .git/
+755  .claude/
+755  Library/
+755  Atlas/
+644  .DS_Store  10.0K
+644  .env  167B
+"""
+expected = """755  Library/
+755  Atlas/
+"""

@@ -1,7 +1,7 @@
 ---
 description: Note review specialist - improves existing notes
 mode: subagent
-model: kimi-for-coding/k2p5
+model: opencode-go/qwen3.7-max
 temperature: 0.3
 ---
 

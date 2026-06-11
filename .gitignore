@@ -1,6 +1,10 @@
 # System files
 .DS_Store
 
+# Universal .env protection
+.env
+!.env.example
+
 # opencode artifacts
 .opencode/.archive/
 .opencode/memory/
@@ -14,6 +18,10 @@
 # NotebookLM Authentication (SENSITIVE)
 .opencode/skills/notebooklm/data/
 .opencode/skills/notebooklm/.venv/
+
+# Open Notebook Authentication (SENSITIVE)
+.opencode/skills/open-notebook/.env
+.claude/skills/open-notebook/.env
 
 # Legacy Archive
 .archive/
@@ -66,3 +74,13 @@ Atlas/Utilities/Images/Payment_JKT_HK_Airplane.jpg
 # Backup files
 *.bak
 *.bak.md
+
+# Python bytecode
+__pycache__/
+
+# Virtual environments
+.opencode/skills/open-notebook/venv/
+.claude/skills/open-notebook/venv/
+
+# Central skill cache (installed via npx skills add, copied to .opencode/ & .claude/)
+.agents/

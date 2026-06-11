@@ -38,6 +38,7 @@ export const SPACES_PATH = "Spaces/"
 # ============================================
 
 export const ACTIVE_SKILLS = [
+    "open-notebook",
     "notebooklm",
     "obsidian-bases",
     "obsidian-cli",

@@ -21,6 +21,7 @@ A Map of Content for LLVM (Low Level Virtual Machine) — modular compiler and t
 - [[Python-BPF Compiler Limitations]] — LLVM IR emission gaps in Python-BPF (missing GEP for array subscript, no atomicrmw)
 - [[LLVM Sub-Projects Overview]] — Detailed overview of LLVM sub-projects (Core, Clang, Flang, LLDB, libc++, compiler-rt)
 - [[Compiler Intermediate Representation]] — Deep dive into compiler IR, SSA form, abstraction levels, and LLVM IR specifics
+- [[LLVM IR Relationship]] — How LLVM uses IR as universal middleman between source languages and machine code
 - [[LLVM External Language Ecosystem]] — External language adopters (Rust, Julia, Lua, Swift, etc.)
 - [[LLVM License Apache 2.0 with Exceptions]] — License framework with GPLv2 compatibility and compiled output exceptions
 - [[LLVM Toolchain Performance Benchmarks]] — Performance analysis of LLD, LLDB, and BOLT
@@ -36,6 +37,7 @@ A Map of Content for LLVM (Low Level Virtual Machine) — modular compiler and t
 - **BOLT** — Binary optimizer and layout tool
 
 ## Related Topics
+- [[llvmlite-User-Guide-MoC]] — Python bindings for LLVM IR and JIT compilation (llvmlite v0.46.0)
 - [[eBPF MOC]] — eBPF uses LLVM for compilation to BPF bytecode
 - [[Systems MOC (kit)]] — Complex systems and emergent behavior
 - [[Things]] — All things in the Ideaverse
