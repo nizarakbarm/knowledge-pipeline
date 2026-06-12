@@ -76,8 +76,16 @@ def ask_notebooklm(question: str, notebook_url: str, headless: bool = True) -> s
         print("  🌐 Opening notebook...")
         page.goto(notebook_url, wait_until="domcontentloaded")
 
-        # Wait for NotebookLM
-        page.wait_for_url(re.compile(r"^https://notebooklm\.google\.com/"), timeout=10000)
+        # Wait for NotebookLM (longer timeout for OAuth redirects)
+        notebooklm_pattern = re.compile(r"^https://notebooklm\.google\.com/")
+        if notebooklm_pattern.match(page.url):
+            print("  ✅ Already on NotebookLM")
+        else:
+            try:
+                page.wait_for_url(notebooklm_pattern, timeout=30000)
+            except:
+                print("  ⚠️ Slow redirect, waiting up to 60s...")
+                page.wait_for_url(notebooklm_pattern, timeout=60000)
 
         # Wait for query input (MCP approach)
         print("  ⏳ Waiting for query input...")

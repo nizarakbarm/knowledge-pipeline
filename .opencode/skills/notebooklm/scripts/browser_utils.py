@@ -6,6 +6,7 @@ Handles browser launching, stealth features, and common interactions
 import json
 import time
 import random
+from pathlib import Path
 from typing import Optional, List
 
 from patchright.sync_api import Playwright, BrowserContext, Page
@@ -25,6 +26,15 @@ class BrowserFactory:
         Launch a persistent browser context with anti-detection features
         and cookie workaround.
         """
+        # Remove stale lock file left by a crashed Chrome session.
+        # Without this, launch_persistent_context throws SingletonLock errors.
+        lock_file = Path(user_data_dir) / "SingletonLock"
+        if lock_file.exists():
+            try:
+                lock_file.unlink()
+            except Exception:
+                pass
+
         # Launch persistent context
         context = playwright.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
