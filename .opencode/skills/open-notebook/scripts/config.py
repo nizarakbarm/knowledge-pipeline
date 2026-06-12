@@ -26,6 +26,28 @@ except ImportError:
     pass
 
 
+def ensure_prefix(identifier: str, prefix: str) -> str:
+    """Ensure an ID has the required table prefix (e.g., 'notebook:').
+
+    The SurrealDB backend requires fully-qualified IDs like
+    `notebook:uijsrkxorg0t77wl243z`. Bare UUIDs cause 500 errors.
+    If the ID already contains a colon, return it as-is.
+    Otherwise, prefix it with `<prefix>:`.
+
+    Args:
+        identifier: The ID string (bare UUID or already prefixed)
+        prefix: The table prefix without colon (e.g., 'notebook', 'source')
+
+    Returns:
+        Fully-qualified ID string
+    """
+    if not identifier or not isinstance(identifier, str):
+        return identifier
+    if ':' in identifier:
+        return identifier
+    return f"{prefix}:{identifier}"
+
+
 def get_config():
     """Load configuration from environment variables.
     

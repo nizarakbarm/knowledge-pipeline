@@ -16,7 +16,7 @@ API Endpoints:
 
 import json
 import requests
-from scripts.config import get_config
+from scripts.config import get_config, ensure_prefix
 
 config = get_config()
 BASE_URL = config['api_url']
@@ -46,12 +46,13 @@ def create_source_chat_session(source_id, title=None, model_override=None):
     Returns:
         Created session object
     """
+    source_id = ensure_prefix(source_id, 'source')
     payload = {"source_id": source_id}
     if title:
         payload["title"] = title
     if model_override:
         payload["model_override"] = model_override
-    
+
     response = requests.post(
         f"{BASE_URL}/sources/{source_id}/chat/sessions",
         json=payload,
@@ -73,6 +74,7 @@ def list_source_chat_sessions(source_id):
     Returns:
         List of session objects
     """
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.get(
         f"{BASE_URL}/sources/{source_id}/chat/sessions",
         headers=HEADERS,
@@ -97,6 +99,7 @@ def get_source_chat_session(source_id, session_id):
     Returns:
         Session object with messages
     """
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.get(
         f"{BASE_URL}/sources/{source_id}/chat/sessions/{session_id}",
         headers=HEADERS,
@@ -131,7 +134,8 @@ def update_source_chat_session(source_id, session_id, title=None, model_override
         payload["title"] = title
     if model_override is not None:
         payload["model_override"] = model_override
-    
+    source_id = ensure_prefix(source_id, 'source')
+
     response = requests.put(
         f"{BASE_URL}/sources/{source_id}/chat/sessions/{session_id}",
         json=payload,
@@ -151,6 +155,7 @@ def delete_source_chat_session(source_id, session_id):
         source_id: Source ID
         session_id: Session ID
     """
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.delete(
         f"{BASE_URL}/sources/{source_id}/chat/sessions/{session_id}",
         headers=HEADERS,
@@ -177,6 +182,7 @@ def send_source_chat_message(source_id, session_id, message, model_override=None
     payload = {"message": message}
     if model_override:
         payload["model_override"] = model_override
+    source_id = ensure_prefix(source_id, 'source')
     
     headers = {
         'Authorization': f"Bearer {config['password']}",

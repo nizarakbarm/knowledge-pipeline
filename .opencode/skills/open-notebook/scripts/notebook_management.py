@@ -24,7 +24,7 @@ import os
 from typing import Optional, List, Dict, Any
 
 import requests
-from scripts.config import get_config
+from scripts.config import get_config, ensure_prefix
 
 config = get_config()
 BASE_URL = config['api_url']
@@ -91,6 +91,7 @@ def list_notebooks(archived=False):
 
 def get_notebook(notebook_id):
     """Retrieve a single notebook by ID."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     response = requests.get(
         f"{BASE_URL}/notebooks/{notebook_id}",
         headers=HEADERS,
@@ -102,6 +103,7 @@ def get_notebook(notebook_id):
 
 def update_notebook(notebook_id, name=None, description=None, archived=None):
     """Update notebook fields."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     payload = {}
     if name is not None:
         payload["name"] = name
@@ -123,6 +125,7 @@ def update_notebook(notebook_id, name=None, description=None, archived=None):
 
 def delete_notebook(notebook_id, delete_sources=False):
     """Delete a notebook and optionally its exclusive sources."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     preview = requests.get(
         f"{BASE_URL}/notebooks/{notebook_id}/delete-preview",
         headers=HEADERS,
@@ -143,6 +146,8 @@ def delete_notebook(notebook_id, delete_sources=False):
 
 def link_source_to_notebook(notebook_id, source_id):
     """Associate an existing source with a notebook."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.post(
         f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}",
         headers=HEADERS,
@@ -154,6 +159,8 @@ def link_source_to_notebook(notebook_id, source_id):
 
 def unlink_source_from_notebook(notebook_id, source_id):
     """Remove the association between a source and a notebook."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.delete(
         f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}",
         headers=HEADERS,
@@ -181,7 +188,9 @@ def create_note(notebook_id: str, content: str, title: Optional[str] = None,
         Created note object with id, title, content, etc.
     """
     payload = _validate_note(content, title=title, note_type=note_type, notebook_id=notebook_id)
-    
+
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
+    payload['notebook_id'] = notebook_id
     response = requests.post(
         f"{BASE_URL}/notes",
         json=payload,
@@ -197,14 +206,16 @@ def create_note(notebook_id: str, content: str, title: Optional[str] = None,
 
 def list_notes(notebook_id: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
     """List notes, optionally filtered by notebook.
-    
+
     Args:
         notebook_id: Optional notebook ID to filter by
         limit: Maximum number of notes to return (default: 20)
-    
+
     Returns:
         List of note objects
     """
+    if notebook_id:
+        notebook_id = ensure_prefix(notebook_id, 'notebook')
     params = {"limit": limit}
     if notebook_id:
         params["notebook_id"] = notebook_id
@@ -236,7 +247,8 @@ def get_note(note_id: str) -> Optional[Dict[str, Any]]:
     """
     if not note_id or not isinstance(note_id, str):
         raise ValueError("note_id must be a non-empty string")
-    
+    note_id = ensure_prefix(note_id, 'note')
+
     response = requests.get(
         f"{BASE_URL}/notes/{note_id}",
         headers=HEADERS,
@@ -271,7 +283,8 @@ def update_note(note_id: str, title: Optional[str] = None,
         raise ValueError('Content cannot be empty or whitespace only')
     if note_type is not None and note_type not in ("human", "ai"):
         raise ValueError("note_type must be 'human' or 'ai'")
-    
+    note_id = ensure_prefix(note_id, 'note')
+
     payload = {}
     if title is not None:
         payload["title"] = title
@@ -303,7 +316,8 @@ def delete_note(note_id: str) -> None:
     """
     if not note_id or not isinstance(note_id, str):
         raise ValueError("note_id must be a non-empty string")
-    
+    note_id = ensure_prefix(note_id, 'note')
+
     response = requests.delete(
         f"{BASE_URL}/notes/{note_id}",
         headers=HEADERS,

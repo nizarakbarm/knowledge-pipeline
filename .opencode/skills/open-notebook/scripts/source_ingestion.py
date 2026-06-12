@@ -21,7 +21,7 @@ import time
 from typing import Optional, List, Dict, Any
 
 import requests
-from scripts.config import get_config
+from scripts.config import get_config, ensure_prefix
 
 config = get_config()
 BASE_URL = config['api_url']
@@ -48,17 +48,17 @@ def _check_not_empty(value, field_name):
 
 def add_url_source(notebook_id, url, process_async=True, embed=True):
     """Add a web URL as a source to a notebook."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     data = {
         "type": "link",
         "url": url,
         "notebook_id": notebook_id,
-        "process_async": str(process_async).lower(),
+        "async_processing": process_async,
+        "embed": embed,
     }
-    if embed:
-        data["embed"] = "true"
     response = requests.post(
-        f"{BASE_URL}/sources",
-        data=data,
+        f"{BASE_URL}/sources/json",
+        json=data,
         headers=HEADERS,
         verify=VERIFY_SSL,
     )
@@ -70,17 +70,18 @@ def add_url_source(notebook_id, url, process_async=True, embed=True):
 
 def add_text_source(notebook_id, title, text, embed=True):
     """Add raw text as a source."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     data = {
         "type": "text",
-        "text": text,
+        "content": text,
+        "title": title,
         "notebook_id": notebook_id,
-        "process_async": "false",
+        "async_processing": False,
+        "embed": embed,
     }
-    if embed:
-        data["embed"] = "true"
     response = requests.post(
-        f"{BASE_URL}/sources",
-        data=data,
+        f"{BASE_URL}/sources/json",
+        json=data,
         headers=HEADERS,
         verify=VERIFY_SSL,
     )
@@ -92,11 +93,12 @@ def add_text_source(notebook_id, title, text, embed=True):
 
 def upload_file_source(notebook_id, file_path, process_async=True, embed=True):
     """Upload a file (PDF, DOCX, audio, video) as a source."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     filename = os.path.basename(file_path)
     data = {
         "type": "upload",
         "notebook_id": notebook_id,
-        "process_async": str(process_async).lower(),
+        "async_processing": str(process_async).lower(),
     }
     if embed:
         data["embed"] = "true"
@@ -116,6 +118,7 @@ def upload_file_source(notebook_id, file_path, process_async=True, embed=True):
 
 def wait_for_processing(source_id, poll_interval=5, timeout=300):
     """Poll source processing status until completion or timeout."""
+    source_id = ensure_prefix(source_id, 'source')
     elapsed = 0
     while elapsed < timeout:
         response = requests.get(
@@ -147,6 +150,7 @@ def embed_source(source_id: str, async_processing: bool = False) -> Dict[str, An
     Returns:
         Embed response with success status and command_id
     """
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.post(
         f"{BASE_URL}/embed",
         json={
@@ -204,6 +208,7 @@ def get_rebuild_status(command_id: str) -> Dict[str, Any]:
     Returns:
         Rebuild status with progress, stats, and timestamps
     """
+    command_id = ensure_prefix(command_id, 'command')
     response = requests.get(
         f"{BASE_URL}/embeddings/rebuild/{command_id}/status",
         headers=HEADERS,
@@ -215,6 +220,8 @@ def get_rebuild_status(command_id: str) -> Dict[str, Any]:
 
 def list_sources(notebook_id=None, limit=20):
     """List sources, optionally filtered by notebook."""
+    if notebook_id:
+        notebook_id = ensure_prefix(notebook_id, 'notebook')
     params = {"limit": limit}
     if notebook_id:
         params["notebook_id"] = notebook_id
@@ -234,6 +241,7 @@ def list_sources(notebook_id=None, limit=20):
 
 def get_source(source_id: str) -> Dict[str, Any]:
     """Get a single source by ID with full details."""
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.get(
         f"{BASE_URL}/sources/{source_id}",
         headers=HEADERS,
@@ -245,6 +253,7 @@ def get_source(source_id: str) -> Dict[str, Any]:
 
 def get_transformation(transformation_id: str) -> Dict[str, Any]:
     """Get a single transformation by ID with full details."""
+    transformation_id = ensure_prefix(transformation_id, 'transformation')
     response = requests.get(
         f"{BASE_URL}/transformations/{transformation_id}",
         headers=HEADERS,
@@ -256,6 +265,7 @@ def get_transformation(transformation_id: str) -> Dict[str, Any]:
 
 def get_source_insights(source_id):
     """Retrieve AI-generated insights for a source."""
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.get(
         f"{BASE_URL}/sources/{source_id}/insights",
         headers=HEADERS,
@@ -278,6 +288,8 @@ def get_insight(source_id: str, insight_id: str) -> Dict[str, Any]:
     Raises:
         ValueError: If insight not found
     """
+    source_id = ensure_prefix(source_id, 'source')
+    insight_id = ensure_prefix(insight_id, 'source_insight')
     # Try direct API first (fast, O(1))
     try:
         response = requests.get(
@@ -301,6 +313,7 @@ def get_insight(source_id: str, insight_id: str) -> Dict[str, Any]:
 
 def retry_failed_source(source_id):
     """Retry processing for a failed source."""
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.post(
         f"{BASE_URL}/sources/{source_id}/retry",
         headers=HEADERS,
@@ -313,6 +326,7 @@ def retry_failed_source(source_id):
 
 def delete_source(source_id):
     """Delete a source."""
+    source_id = ensure_prefix(source_id, 'source')
     response = requests.delete(
         f"{BASE_URL}/sources/{source_id}",
         headers=HEADERS,
@@ -346,6 +360,8 @@ def create_source_insight(source_id: str, transformation_id: str,
     """
     _check_not_empty(source_id, 'source_id')
     _check_not_empty(transformation_id, 'transformation_id')
+    source_id = ensure_prefix(source_id, 'source')
+    transformation_id = ensure_prefix(transformation_id, 'transformation')
     
     response = requests.post(
         f"{BASE_URL}/sources/{source_id}/insights",
@@ -506,6 +522,8 @@ def save_insight_as_note(insight_id: str, notebook_id: str) -> Dict[str, Any]:
         raise ValueError("insight_id must be a non-empty string")
     if not notebook_id or not isinstance(notebook_id, str):
         raise ValueError("notebook_id must be a non-empty string")
+    insight_id = ensure_prefix(insight_id, 'source_insight')
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     
     response = requests.post(
         f"{BASE_URL}/insights/{insight_id}/save-as-note",

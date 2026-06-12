@@ -17,7 +17,7 @@ Usage:
 """
 
 import requests
-from scripts.config import get_config
+from scripts.config import get_config, ensure_prefix
 
 config = get_config()
 BASE_URL = config['api_url']
@@ -38,6 +38,7 @@ def _pr(*args, **kwargs):
 
 def create_chat_session(notebook_id, title, model_override=None):
     """Create a new chat session within a notebook."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     payload = {
         "notebook_id": notebook_id,
         "title": title,
@@ -58,6 +59,7 @@ def create_chat_session(notebook_id, title, model_override=None):
 
 def list_chat_sessions(notebook_id):
     """List all chat sessions for a notebook."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     response = requests.get(
         f"{BASE_URL}/chat/sessions",
         params={"notebook_id": notebook_id},
@@ -123,6 +125,7 @@ def get_session_history(session_id):
 
 def build_context(notebook_id, source_ids=None, note_ids=None):
     """Build context data from sources and notes for inspection."""
+    notebook_id = ensure_prefix(notebook_id, 'notebook')
     payload = {"notebook_id": notebook_id}
     if source_ids:
         payload["source_ids"] = source_ids
