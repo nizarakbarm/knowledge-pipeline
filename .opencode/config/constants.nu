@@ -45,12 +45,13 @@ export const ACTIVE_SKILLS = [
     "obsidian-markdown",
     "defuddle",
     "json-canvas",
-    "bash-pro",
-    "clean-code",
-    "clean-architecture",
-    "git-commit",
-    "rust-best-practices",
-    "rust-engineer"
+    "ideaverse",
+    "ideaverse-enrichment",
+    "ideaverse-maintenance",
+    "grill-me",
+    "handoff",
+    "teach",
+    "zoom-out"
 ]
 
 # ============================================
