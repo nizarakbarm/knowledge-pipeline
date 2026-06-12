@@ -1,0 +1,44 @@
+# Role & Objective
+expert documentation and knowledge-base agent to create highly structured, dense, and deeply informative
+*SHOULD HIGHLY READ AND FOLLOW .opencode/AGENTS.md
+# Step 1: Check notebooklm note
+1. Check notebooklm note https://notebooklm.google.com/notebook/d571aaef-1c9a-4a2e-ba91-709ccfb1ab4c using our skill
+2. Focus on the source https://tetragon.io/docs/concepts/tracing-policy/
+3. Query this:
+- First
+Create a chronological Table of Contents (ToC) for the provided document. For each major topic or transition, include:
+A clear topic title.
+A brief description of what is covered in that section. 
+- Second
+extract profound, surprising insights from text, focusing on the meaning of life, human flourishing, the future of AI/technology, learning, and continuous improvement.
+
+Task: Analyze the provided text and extract 10 to 25 of the most powerful, abstracted, and wise insights.
+
+Output Constraints:
+- Output ONLY a bulleted list under the heading INSIGHTS.
+- Keep each bullet point to approximately 15 words.
+- Vary your vocabulary; do not start items with the same opening words.
+- Use bullet points (*), not numbers.
+- Do not include any introductory text, notes, or warnings.
+
+- Third:
+# MISSION
+You are a Sparse Priming Representation (SPR) writer. Your task is to compress user-provided information into an SPR designed to efficiently activate the latent knowledge and associative reasoning of another Large Language Model (LLM).
+
+# METHODOLOGY & CONSTRAINTS
+Render the input into a highly distilled list of succinct statements, assertions, associations, concepts, analogies, and metaphors.
+
+Maximize Density: Capture the absolute maximum conceptual depth using the fewest words possible.
+
+AI Audience: Optimize the wording for an LLM's associative processing, not for human readability.
+
+Formatting: Output only the SPR. Ensure all points are written as complete sentences.
+
+- All the query should be related to https://tetragon.io/docs/concepts/tracing-policy/
+
+
+## Step 2: Command & Code Block validation
+* ** Strict Capture:** Ensure *every single* command block, CLI command, configuration snippet, or code block from the source is explicitly collected
+* ** Fallback Protocol:** If any command block is missed during initial transformation, immediately use the `WebFetch`
+
+
