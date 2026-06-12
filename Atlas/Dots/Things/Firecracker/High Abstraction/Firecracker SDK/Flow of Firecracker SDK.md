@@ -1,3 +1,22 @@
+---
+created: 2026-05-19
+up:
+  - "[[MOC-MicroVM]]"
+related:
+  - "[[Firecracker Overview & Core Concepts]]"
+  - "[[Firecracker Prerequisites & Installation]]"
+  - "[[Firecracker Jailer Security Architecture]]"
+  - "[[Firecracker VirtIO Network and Block IO Rate Limiting]]"
+in:
+  - "[[Atlas]]"
+tags:
+  - systems/microvm
+  - firecracker-sdk
+  - golang
+---
+
+# Flow of Firecracker SDK
+
 Step in creating instance with SDK:
 1. Install Golang
 ```bash
@@ -66,3 +85,10 @@ cd $GOPATH/src/github.com/awslabs/tc-redirect-tap
 git clone https://github.com/awslabs/tc-redirect-tap.git .
 make install
 	```
+
+## Related / Links
+- [[MOC-MicroVM]]
+- [[Firecracker Overview & Core Concepts]]
+- [[Firecracker Prerequisites & Installation]]
+- [[Firecracker Jailer Security Architecture]]
+- [[Firecracker VirtIO Network and Block IO Rate Limiting]]

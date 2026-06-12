@@ -38,6 +38,7 @@ A Map of Content for eBPF (extended Berkeley Packet Filter) knowledge — kernel
 
 ### Security & Enforcement
 - [[Tetragon Overview]] — Cilium Tetragon: real-time eBPF-based security observability & runtime enforcement
+- [[Tetragon TracingPolicy]] — User-defined eBPF policies for kernel-level security observability, filtering & runtime enforcement
 ## Related Topics
 - [[LLVM MOC]] — LLVM compiler infrastructure used for eBPF bytecode generation
 - [[Systems MOC (kit)]] — Complex systems and emergent behavior

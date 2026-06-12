@@ -36,7 +36,7 @@ What are "Things"? They are the sturdy dots that answer "What is this?" — conc
 
 I am playing around with a property field called `in`. It allows me a nice way to create a few passive maps for different types of things into different collections. Here's what I have so far, feel free to make more:
 
-- [[Golang]] | [[Python]] | [[Rust]] | [[eBPF-Saturday]] | [[BCC eBPF]] | [[Firecracker]] | [[Openlitespeed]] | [[PythonBPF]] | [[Suricata]] | [[Openresty]] | [[Migrating from asdf to mise]] | [[Agenda Python Docs]] | [[Network-Performance]] | [[LLVM MOC]] | [[Tetragon Overview]] | [[Reverse Engineering MOC]]
+- [[Golang]] | [[Python]] | [[Rust]] | [[eBPF-Saturday]] | [[BCC eBPF]] | [[Firecracker]] | [[Openlitespeed]] | [[PythonBPF]] | [[Suricata]] | [[Openresty]] | [[Migrating from asdf to mise]] | [[Agenda Python Docs]] | [[Network-Performance]] | [[LLVM MOC]] | [[Tetragon Overview]] | [[Tetragon TracingPolicy]] | [[Reverse Engineering MOC]]
 
 > [!Box]- ## ALL THINGS
 > This is a simple dataview pulling anything from the **Things** folder.

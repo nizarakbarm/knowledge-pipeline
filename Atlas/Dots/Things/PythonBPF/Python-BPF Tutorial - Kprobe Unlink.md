@@ -281,6 +281,71 @@ sudo cat /sys/kernel/tracing/trace_pipe
 
 ---
 
+## Understanding the Union Warnings
+
+When running the Python-BPF program with `struct_pt_regs`, you will see warnings like this:
+
+```
+[WARNING] pythonbpf.vmlinux_parser.ir_gen.debug_info_gen: Skipping debug info generation for union: union_pt_regs_0
+[WARNING] pythonbpf.vmlinux_parser.ir_gen.ir_generation: Blindly handling non-struct type to avoid type errors in vmlinux IR generation. Possibly a union.
+[WARNING] pythonbpf.vmlinux_parser.ir_gen.debug_info_gen: Skipping debug info generation for union: union_pt_regs_1
+```
+
+### Why These Warnings Appear
+
+**`struct_pt_regs` contains union members** (`union_pt_regs_0`, `union_pt_regs_1`). Python-BPF's vmlinux parser **cannot generate proper DWARF debug info for unions**, so it handles them in two ways:
+
+1. **Debug Info Generator** (`debug_info_gen.py:34-41`): Creates an empty placeholder for unions:
+   ```python
+   if not struct.name.startswith("struct_"):
+       logger.warning(f"Skipping debug info generation for union: {struct.name}")
+       union_type = generator.create_struct_type(
+           [], struct.__sizeof__() * 8, is_distinct=True  # Empty members!
+       )
+       return union_type
+   ```
+
+2. **IR Generator** (`ir_generation.py`): Blindly passes union fields through without proper type handling to avoid compilation errors.
+
+### Why One Section Works Despite Warnings
+
+| Step | What Happens | Result |
+|------|--------------|--------|
+| **Debug Info** | Creates empty placeholder for unions | ⚠️ Warning shown |
+| **IR Generation** | Blindly handles union fields | ⚠️ Warning shown |
+| **Code Generation** | `ctx.di`, `ctx.si` still compile correctly | ✅ Works! |
+| **BTF** | Contains incomplete union info but sufficient | ✅ Works! |
+| **Runtime** | eBPF program runs normally | ✅ Works! |
+
+**The key**: With **one section**, the union metadata is created **once and never shared**. Even though it's incomplete (empty placeholder), there's no conflict.
+
+### Why Multiple Sections Fail
+
+When you add a **second section** using `struct_pt_regs`:
+
+1. **First function**: Creates empty union metadata placeholders → Works
+2. **Second function**: Tries to **reuse** the same union metadata
+3. **Circular references**: The empty placeholders create circular references in llvmlite's metadata graph
+4. **RecursionError**: llvmlite's cache tries to hash the circular metadata → Infinite recursion
+5. **CO-RE failure**: Even if caught, the broken metadata causes BTF/CO-RE errors
+
+### Are the Warnings Harmful?
+
+**No** — for a single-section program, the warnings are **benign**. They indicate Python-BPF is working around its union handling limitation. The program will compile and run correctly.
+
+**However**, they reveal a critical alpha-stage limitation: **Python-BPF cannot properly handle kernel structures containing unions when used in multiple BPF functions**.
+
+### Workaround
+
+If you need **both kprobe and kretprobe** in the same program, you have two options:
+
+1. **Use separate files** (recommended): Put each section in its own Python file
+2. **Use `c_void_p` context**: Avoids the union bug entirely but loses convenient register access (`ctx.di`, `ctx.si`)
+
+See [[Python-BPF RecursionError with Multiple Sections Using Union Structs]] for detailed workarounds.
+
+---
+
 ## Code Breakdown
 
 | Component | Purpose |
