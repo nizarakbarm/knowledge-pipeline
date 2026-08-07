@@ -27,7 +27,7 @@ Nizar Akbar Meilani — DomaiNesia
 
 ---
 
-## 2. Motivation & Architecture (2 slides)
+## 2. Motivation & Architecture (3 slides)
 
 ### 2a. Motivation
 
@@ -43,7 +43,7 @@ Key framing: We measured both frameworks across startup syscalls, process CPU/me
 | Init CPU | **0.52s** | **0.018s** (28-30× faster) |
 | Kernel headers | 10,517 `read()` calls | **0** |
 | Callback bridge | ctypes (`c_void_p`, zero-copy) | pybind11 (`py::bytes` alloc per event) |
-| Poll mechanism | `poll()` (POSIX) | `epoll_wait()` (libbpf) |
+| Poll mechanism | `perf_event_open` → **`poll()`** (direct fd) | `perf_event_open` → `epoll_ctl` → **`epoll_wait()`** (fd registered in epoll set) |
 | GIL release | implicit — ctypes `Py_BEGIN_ALLOW_THREADS` | explicit — `py::gil_scoped_release` |
 | Attach method | legacy `PERF_EVENT_IOC_SET_BPF` ioctl | modern `BPF_LINK_CREATE` |
 | Format string | **Stack** — `movabs` per 8 bytes | **`.rodata` map** — single `movabs` |
@@ -52,11 +52,28 @@ Key framing: We measured both frameworks across startup syscalls, process CPU/me
 
 **Why:** Clang forks twice per program, reads **10,517 kernel header files** via `read()` syscalls, parses full kernel BTF/type definitions.
 
+### 2c. Runtime Bridge
+
+**Reference — code path:** `BpfObject::struct_defs_` (py::dict ctypes classes) → `get_struct_parser()` (lazy) → `std::shared_ptr<StructParser>` (`perf_event_array.h:21`).
+
+| Aspect | BCC | Python-BPF |
+|--------|-----|------------|
+| Callback bridge | ctypes (`c_void_p`, zero-copy) | pybind11 (`py::bytes` alloc per event) |
+| Poll mechanism | `perf_event_open` → **`poll()`** (direct fd) | `perf_event_open` → `epoll_ctl` → **`epoll_wait()`** (fd registered in epoll set) |
+| GIL release | implicit — ctypes `Py_BEGIN_ALLOW_THREADS` | explicit — `py::gil_scoped_release` |
+| Attach method | legacy `PERF_EVENT_IOC_SET_BPF` ioctl | modern `BPF_LINK_CREATE` |
+
+**Why this slide exists (deck split):** compilation/startup story (2b) is one slide, the runtime bridge (dispatch + poll + GIL) is its own — because per-event cost differences all live in this bridge, not in the bytecode.
+
 ---
 
-## 3. Methodology / Measurement (1 slide)
+## 3. Methodology / Measurement (3 slides)
 
-### Two Workload Triggers
+*Deck splits into: Workloads · Measurement Tools — Syscall & CPU · Measurement Tools — Python & Bytecode.*
+
+
+### Workloads
+
 
 | Workload | Tracepoint | Event rate | Purpose |
 | -------- | ---------- | ---------- | ------- |
@@ -64,7 +81,15 @@ Key framing: We measured both frameworks across startup syscalls, process CPU/me
 | **Low-rate** | `syscalls/sys_enter_openat` | ~few ev/s (natural) | Format string tests (print_pid, print_long_str) |
 | **kprobe** | `kprobe/do_nanosleep` | — | Foundation baseline (bytecode identity) |
 
-### Measurement Techniques (12 tools)
+### Measurement Tools — Syscall & CPU
+
+*Deck slide: strace counts syscalls and times each; `time.process_time()` isolates poll-loop CPU; perf stat measures cycles/IPC; perf record builds flamegraph; perf probe counts `PyBytes_FromStringAndSize` calls (383K vs 40K).*
+
+### Measurement Tools — Python & Bytecode
+
+*Deck slide: pyinstrument (startup call tree), scalene (memory+CPU), `/usr/bin/time -v` (RSS/faults), bpftool dump (xlated/JIT per-instruction).*
+
+### Measurement Techniques (12 tools) — full reference
 
 **Core (10) — produce the numbers on result slides:**
 
@@ -112,7 +137,7 @@ Each program has a BCC equivalent.
 
 ---
 
-## 4. Foundation: BPF Syscall-Only Program (2 slides)
+## 4. Foundation: BPF Syscall-Only Program (4 slides)
 
 ### 4a. Source & Syscall Output (1 slide)
 
@@ -143,7 +168,29 @@ Each program has a BCC equivalent.
 
 **Program types loaded:** PBPF = 3 SOCKET_FILTER + 1 KPROBE + 1 TRACEPOINT; BCC = 2 SOCKET_FILTER + 1 KPROBE.
 
-### 4b. JIT / Xlated + Deciding Metrics (1 slide)
+### 4b. Identical Bytecode (1 slide)
+
+**Result preview:** both frameworks produce **byte-for-byte identical BPF bytecode** for the same program. Every performance difference lives in the **framework glue** around it.
+
+```
+xlated (2 insns, both):
+0: (b7) r0 = 0
+1: (95) exit
+```
+
+BTF tag both: `a04f5eef06a7f555` — identical kernel fingerprint.
+
+### 4c. Deciding Metrics (1 slide)
+
+**Tool:** `/usr/bin/time -v`, startup only (no trigger).
+
+**The deciding metrics:** BCC uses 2.3× memory, 3× user CPU, 5.8× system CPU. The kernel header reads (192 FS inputs) are clang's include path. For short-lived tools this startup gap is the deciding factor.
+
+Full numbers in the `### 4d` reference block below.
+
+### 4d. Reference — startup numbers (notes detail)
+
+### 4e. JIT / Xlated + Deciding Metrics (1 slide)
 
 **Tool:** `bpftool prog dump xlated/jited` + `/usr/bin/time -v`
 
@@ -183,9 +230,20 @@ mov %rsp,%rbp; endbr64; xor %eax,%eax; leave; jmp <trampoline>
 **Why this matters:** All per-event performance differences between BCC and PBPF come from **framework glue** (ctypes vs pybind11 dispatch), not BPF JIT quality or kernel execution. The bytecode is the same — the wrapper around it is not.
 
 ---
-## 5. Building Up: Map + Perf (7 slides)
+## 5. Building Up: Map + Perf (17 slides)
+
+*Deck interleaves the numbered plan (5.1–5.8) with "Building Up" narrative slides — each isolates one variable of the measurement trap.*
 
 ### 5.1. Why Combine Map + Perf — and NOT a Struct in the Map (1 slide)
+
+**Deck framing — "The question":** Which eBPF framework is faster? The answer isn't binary. This section isolates the three entangled variables (HashMap · full print · struct parsing), one at a time.
+
+**The smallest possible eBPF program** — kprobe on `do_nanosleep` returns 0. No map, no perf buffer, no callback. Pure framework startup overhead.
+
+### 5.1b. Why NOT a Struct in the Map — the Decision (1 slide)
+
+*Deck slide: the struct-in-map attempt fails twice — docs write-through pattern crashes llc (`invalid getelementptr indices`, double-index GEP on `i64*` lookup result); read-then-update workaround compiles but is 19% slower (8,619 vs 7,255 ns/ev). Decision: keep map value plain `u64`; struct exists only as perf event payload. Full details in the 5.1 reference block below.*
+
 
 **The goal:** per-UID state (HashMap) **plus** streaming events to Python (perf buffer).
 
@@ -292,6 +350,16 @@ struct data_t { u32 uid; u64 count; };   // count embedded at BPF time
 | Per-callback cycles | 28,506 | 24,241 (1.18× leaner) |
 | JIT size | 242B | 347B |
 
+**How per-callback cycles is computed** (total cycles ÷ callbacks delivered, under `perf record`):
+
+| | BCC | PBPF |
+|:--|:---:|:----:|
+| Total cycles | 33.2×10⁹ | 48.4×10⁹ |
+| Callbacks delivered | 1,164,031 (58%) | 1,999,457 (99.97%) |
+| **Cycles / callback** | **28,506** | **24,241** |
+
+> [!warning] **Confounded by BCC's overflow**: BCC's 33.2B cycles include overflow-drain overhead, divided by 42% fewer delivered callbacks → its per-callback number is inflated. The clean comparison (both ~100% delivery) is the without_map baseline: BCC 6,982 vs PBPF 7,212 ns/ev — BCC 3.3% faster. PBPF's dispatch is structurally leaner (wins no-struct/empty), but the double copy flips full-callback to BCC.
+
 \* BCC run-to-run variance **60-76%** (1,214,049–1,523,098, two valid runs). Under perf record: BCC **58%** (1,164,031) vs PBPF **99.97%** (1,999,457). Earlier 29-34% BCC runs had a broken `lost_cb` lambda (SyntaxError) — invalid.
 
 **Startup of the same program** (from `strace -c` + `perf stat` + `time -v`, no trigger):
@@ -311,6 +379,35 @@ Same mechanism as Foundation: BCC's in-process Clang + kernel header parsing dom
 **Reveal:** the timing program measured a **stale counter + 2 syscalls/event overhead**. With the fix, PBPF delivers **99.9%** vs BCC **60-76%** — ctypes dispatch overhead slows BCC's drain rate → more perf buffer overflow.
 
 > [!note] **Measurement trap:** the perf buffer is `BPF_MAP_TYPE_PERF_EVENT_ARRAY`, 32KB/CPU (~1,365 events). When BCC's ctypes drain is slow (>2.5 µs/ev), it drops **5,543 of 2M samples** — so early "BCC is 1.68× faster" was an **artifact of fewer callbacks, not faster dispatch**.
+
+### 5.4b. Count Program — Per-Callback Cycles Explained (1 slide)
+
+**Deck slide:** per-callback cycles come from `perf stat` total cycles ÷ delivered callbacks under `perf record`. BCC's number is confounded — 42% overflow loss means fewer callbacks to divide by, inflating its per-callback cycles. The clean comparison (both >99.9% delivered) is the without_map baseline: BCC 6,982 vs PBPF 7,212 ns/ev — BCC 3.3% faster at full print. The double copy is the real limiter, not dispatch.
+
+| | BCC | PBPF |
+|:--|:---:|:----:|
+| Total cycles | 33.2×10⁹ | 48.4×10⁹ |
+| Callbacks delivered | 1,164,031 (58%) | 1,999,457 (99.97%) |
+| **Cycles / callback** | **28,506** | **24,241** (1.18× leaner) |
+
+### 5.4c. Building Up: The Count Program — CPU Paradox (1 slide)
+
+**Deck slide:** BCC used **less CPU** delivering **4× fewer callbacks** — faster dispatch, or just less work? Can't tell: three variables entangled (HashMap · full print · struct parsing). Next slides isolate them one at a time.
+
+### 5.4d. Building Up: The Measurement Trap (1 slide)
+
+**Deck slide:** the first benchmark said BCC was 1.68× faster — but it dropped 5,543 events as the slow ctypes drain overflowed the 32KB perf buffer. Fewer callbacks = less CPU = "faster". That's a guess, not a measurement — the test entangled map + full print + struct parsing. Fix: isolate (remove HashMap → perf-only, compare empty/full callbacks, toggle struct parsing).
+
+> [!note] perf buffer = `BPF_MAP_TYPE_PERF_EVENT_ARRAY`, 32KB/CPU (~1,365 events) — NOT `BPF_MAP_TYPE_RINGBUF`.
+
+### 5.4e. Building Up: Count Program — Startup (1 slide)
+
+**Deck slide:** same startup gap as Foundation — BCC forks clang, reads 10,489 kernel headers, in-process compilation. PBPF forks `llc` subprocess (one `wait4`). At 2M events init cost amortizes away; the runtime dispatch profile dominates.
+
+### 5.4f. Building Up: Count Program — Bytecode & JIT (1 slide)
+
+**Deck slide:** the bytecode is the same — the wrapper around it is not. BCC `(*count)++` = 3 in-place instructions; PBPF `Count.lookup() + update() + assign` = helper call (~22 insns arg setup) + 2× increment calculation. Revisit in takeaways.
+
 
 ### 5.5. Per-Event: without_map Baseline (1 slide)
 
@@ -357,6 +454,27 @@ callback_(cpu, event);
 
 **Why NOT "fixed" by per-100 print?** Struct parser runs on **every event**, not every 100th. Same 1.61s in both empty-callback and e100. Print overhead (1.21s) just makes struct % drop 18% → 16% — absolute cost unchanged.
 
+### 5.5b. Building Up: Per-Event Baseline — Findings (1 slide)
+
+**Deck slide:** cleanest baseline numbers — no struct parsing, empty callback, 2M events. PBPF wins by **16%** on raw bytes; even with struct parsing it still leads. No perf buffer losses in any test (verified).
+
+| Test | BCC ns/ev | PBPF ns/ev | Winner |
+|:-----|:--------:|:----------:|:-------|
+| No-struct (raw bytes, empty cb) | 4,705 | **3,968** | PBPF 16% |
+| Empty (struct parsing, empty cb) | 4,943 | **4,773** | PBPF 3.4% |
+| Full (print per event) | **6,982** | 7,212 | BCC 3.3% |
+
+### 5.5c. The Double Copy: struct_parser's 805 ns/event (1 slide)
+
+**Deck slide — the centerpiece:** two copies per event: `py::bytes` alloc + memcpy (~130 ns), then `from_buffer_copy` copies again into the ctypes struct (~675 ns) = **805 ns/event, 1.61s per 2M events**. BCC receives a `c_void_p` pointer that overlays the struct — zero copies. Fix: typed memoryview over the existing bytes buffer.
+
+| Component | Per-event | 2M total |
+|-----------|:--------:|:--------:|
+| COPY #1: `py::bytes` | ~130 ns | 0.26s |
+| COPY #2: `from_buffer_copy` | ~675 ns | 1.35s |
+| **Total struct_parser** | **805 ns/ev** | **1.61s** |
+| BCC `.event(data)` | ~238 ns | 0.48s |
+
 ### 5.6. Format String: Storage Strategy (1 slide)
 
 **Tool:** `bpftool prog dump xlated/jited`
@@ -372,7 +490,15 @@ BCC stores on **stack** — `movabs` pairs per 8 bytes, scales with string lengt
 
 **6× fewer instructions for long strings in PBPF.** No stack frame allocation needed.
 
-### 5.7. Profile: Where CPU Goes (1 slide)
+### 5.7. Where the CPU Actually Goes — BCC (1 slide)
+
+**Deck slide:** BCC flamegraph full-slide. The visible ctypes+libffi dispatch block — 7.5% of cycles. PBPF's side gets the next slide for direct comparison.
+
+### 5.7b. Where the CPU Actually Goes — PBPF (1 slide)
+
+**Deck slide:** PBPF flamegraph full-slide. The ctypes+libffi block is nearly gone — **1.8% vs BCC's 7.5%**. Leaf-level numbers on the next slide.
+
+### 5.7c. Where the CPU Actually Goes — Leaf Breakdown (1 slide)
 
 **Tool:** `perf record -F 199` + flamegraph (count program, 2M events)
 
@@ -411,7 +537,9 @@ BCC stores on **stack** — `movabs` pairs per 8 bytes, scales with string lengt
 
 ---
 
-## 6. Python-BPF Limitations (2 slides)
+## 6. Python-BPF Limitations (3 slides)
+
+*Deck: 6.1 Compiler Gaps · 6.2 Struct-in-Map llc crash · 6.3 Kernel Strings + What Works — one slide each.*
 
 ### 6.1. Two Compiler Gaps
 
@@ -461,8 +589,18 @@ Root cause: `get_ptr_from_arg` for `probe_read_str` expects `ir.PointerType`, bu
 * Format strings in `.rodata` map (PBPF wins here)
 * Ahead-of-time compilation (no LLVM at runtime)
 
+**Deck:** 6.3 = "Kernel Strings + What Works" — the working-features list below rides on the same slide.
+
+### 6.4. Honest Scoreboard (1 slide)
+
+**Deck slide — honest scoreboard:** row-by-row where each framework wins/loses (startup, raw bytes, full callback, format strings, kernel strings, atomic counters, production maturity). BCC also wins the full-print callback (6,982 vs 7,212 ns/ev = 3.3%), and its zero-copy `.event(data)` beats PBPF's 805 ns/ev double copy. BCC has working kernel strings, atomic counters, production maturity.
+
+### 6.5. Honest Scoreboard — Closing the Gap (1 slide)
+
+**Deck slide:** four compiler patches (Subscript handler · atomic read-modify-write · inttoptr kernel strings · struct-map GEP fix) + one perf patch (memoryview overlay, eliminates double copy) close the gap. With those, PBPF wins every row. Until then, BCC is the choice for kernel-string/atomic-counter workloads.
 
 ## 7. Key Takeaways (1 slide)
+
 
 | When | Choose BCC | Choose Python-BPF |
 |---|---|---|
@@ -477,25 +615,37 @@ Root cause: `get_ptr_from_arg` for `probe_read_str` expects `ir.PointerType`, bu
 **Four patches close the gap:** `ast.Subscript` handler + `atomic_rmw` + `inttoptr` + struct-map GEP fix.
 
 **Key surprise:** PBPF bridge overhead is *lower* than BCC for simple callbacks. The earlier 1.12× gap was from measurement artifacts (perf buffer overflow). With fair comparison, PBPF equals or beats BCC on per-event CPU. The real cost is startup — and PBPF wins that by 23×.
-## Slide Totals
+## Slide Totals (deck-accurate, 2026-08-07)
 
 | Section | Slides |
 |:--------|:------:|
 | Title | 1 |
-| Motivation & Architecture | 2 |
-| Methodology | 1 |
-| Foundation: BPF Syscall-Only | **2** |
-| **Building Up: Map + Perf** | **7** |
-| - Why Combine (5.1) | 1 |
-| - Timing Program (5.3) | 1 |
-| - Count Program (5.4) | 1 |
-| - without_map Baseline (5.5) | 1 |
-| - Format String (5.6) | 1 |
-| - Profile (5.7) | 1 |
-| - Bridge Cost & GIL (5.8) | 1 |
-| Limitations | 2 |
-| Key Takeaways | 1 |
-| Q&A | 1 |
-| **Total** | **17** |
+| About Me | 1 |
+| Motivation & Architecture (2a Motivation · 2b Compilation & Startup · 2c Runtime Bridge) | 3 |
+| Methodology (Workloads · Tools Syscall & CPU · Tools Python & Bytecode) | 3 |
+| Foundation (4a Source · 4a2 Syscall Output · 4b Identical Bytecode · 4c Deciding Metrics) | 4 |
+| **Building Up: Map + Perf** | **17** |
+| - 5.1 Why Combine | 1 |
+| - 5.1b Why NOT Struct-in-Map (Decision) | 1 |
+| - 5.4 Count Program | 1 |
+| - 5.4b Per-Callback Cycles Explained | 1 |
+| - 5.4c CPU Paradox | 1 |
+| - 5.4d Measurement Trap | 1 |
+| - 5.4e Startup | 1 |
+| - 5.4f Bytecode & JIT | 1 |
+| - 5.5 without_map Baseline | 1 |
+| - 5.5b Baseline Findings | 1 |
+| - 5.5c Double Copy (805 ns/ev) | 1 |
+| - 5.6 Format String | 1 |
+| - 5.7 Profile BCC | 1 |
+| - 5.7b Profile PBPF | 1 |
+| - 5.7c Leaf Breakdown | 1 |
+| - 5.8 Bridge Cost & GIL | 1 |
+| Limitations (6.1 Compiler Gaps · 6.2 Struct-in-Map llc · 6.3 Kernel Strings + What Works) | 3 |
+| Honest Scoreboard (6.4) | 1 |
+| Honest Scoreboard — Closing the Gap (6.5) | 1 |
+| Key Takeaways (7) | 1 |
+| Thank You / About / Q&A | 3 |
+| **Total** | **38** |
 
-Target: 30 min → ~1.8 min/slide for 17 slides.
+Target: 30 min → ~0.8 min/slide for 38 slides (may need trimming).

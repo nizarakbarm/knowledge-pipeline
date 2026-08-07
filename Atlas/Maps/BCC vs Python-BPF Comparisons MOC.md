@@ -38,6 +38,7 @@ cssclasses:
 | [[Perf Buffer Call Path]] | Call path tracing |
 | [[Embedded Counter Benchmark]] | Counter benchmark results |
 | [[Python-BPF Struct-in-Map Value — llc Bug & Benchmark]] | Struct map value: llc GEP bug, read-then-update fix, 8.6µs/ev |
+| [[PBPF Struct Parser Bottleneck]] | StructParser::parse() hot path |
 | [[BPF map vs stack memory safety]] | Memory safety |
 | [[BCC vs Python-BPF bpf_printk Comparison]] | bpf_printk |
 | [[BPF Syscall-Only — kallsyms Symbol Resolution Overhead]] | /proc/kallsyms ~10k reads |
@@ -112,7 +113,7 @@ cssclasses:
 
 | Note | Content |
 |------|---------|
-| [[Spaces/PyCon-TW-2026/ebpf-slides-structure]] | Slide structure (20 slides) |
+| [[Spaces/PyCon-TW-2026/ebpf-slides-structure]] | Slide structure (38 slides) |
 | [[Spaces/PyCon-TW-2026/fresh-benchmark-results]] | Latest benchmark numbers |
 
 ## Efforts
