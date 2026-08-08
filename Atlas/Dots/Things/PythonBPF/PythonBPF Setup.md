@@ -64,6 +64,18 @@ zypper install llvm21 clang21 lld21 libclang-cpp2
 pip install pythonbpf pylibbpf ctypeslib2
 ```
 
+### pylibbpf — rebuild with debug symbols (profiling)
+
+Stock wheel = Release build; `perf`/`gdb` can't attribute cost inside `pylibbpf .so` (`[unknown]`). Rebuild for DWARF:
+
+```bash
+git clone https://github.com/pythonbpf/pylibbpf
+cd pylibbpf
+DEBUG=1 /root/learn-pythonbpf/.venv/bin/pip install .   # setup.py: DEBUG=1 → CMAKE_BUILD_TYPE=Debug
+```
+
+Verify: `readelf -S` shows `debug_*` sections. Needed for flamegraph attribution (e.g. PyCon TW deck: "pylibbpf .so = 5.74% of samples"). Must share the venv with `pythonbpf`; needs system `libbpf.so.1` (`libbpf-devel`).
+
 ### Post-Install (All Platforms)
 
 Generate `vmlinux.py` for your kernel:
