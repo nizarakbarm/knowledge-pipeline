@@ -68,6 +68,17 @@ Two ARM sources: `cmp_inc_arm64.s` (native aarch64 — `ldr w1,[x0] / add / str`
 > 32-bit registers outright. This is not a typo; ARM32 and AArch64 are different ISAs.
 > Match source to target: ARM32 source → `--target=armv7-linux-gnueabihf`, AArch64 source → `--target=aarch64-linux-gnu`. Add `-c` (assemble only) unless you have a sysroot to link against.
 
+**Runnable version** (ARM32, exits cleanly — `ldr/adds/str` plus the exit syscall; counter in `.data`, no dereference of unmapped addresses):
+
+```bash
+apk add lld qemu-arm            # Alpine; Debian/Ubuntu: qemu-user (lld ships ld.lld for the cross-link)
+printf '.text\n.global _start\n_start:\n    ldr r0, =counter\n    ldr r3, [r0]\n    adds r2, r3, #1\n    str r2, [r0]\n    mov r7, #1\n    svc 0\n.data\ncounter: .word 41\n' > run_arm.s
+clang --target=armv7-linux-gnueabihf -nostdlib -static run_arm.s -o run_arm
+qemu-arm ./run_arm; echo "exit=$?"    # aarch64 host cannot run ARM32 natively
+```
+
+`objdump -d` disassembly of `run_arm.o` shows the 3-instruction increment (`ldr r3,[r0]` / `adds r2,r3,#1` / `str r2,[r0]`) — note this build emits **ARM-state** encodings (`e5903000`-style, 32-bit) unless the source carries `.thumb`; Thumb gives the `1B 68 / 5A 1C / 1A 60` bytes from The Evidence. Either state proves the load-store shape. The `.o` is *not* executable — link first (the `-nostdlib -static` step above).
+
 ## Why the Difference
 
 - **CISC (x86):** arithmetic instructions accept *memory operands*. The `INC`/`ADD` unit performs read-modify-write against RAM directly — no register round-trip. `MOVS` goes further: it can read *and* write memory in one instruction (string copy).
