@@ -46,7 +46,7 @@ Verified: both assemble under `clang --target=armv7-linux-gnueabihf` / `clang --
 On ARM hardware, the ARM side is **native** — the x86 side is the cross-compile:
 
 ```bash
-apk add clang llvm binutils          # Alpine: one install covers both arches
+apk add clang llvm binutils          # Alpine: one install covers both arches (binutils optional — llvm-objdump reads both)
 cd Extras/assembly
 
 # ARM (native, aarch64) — 3-instruction load-store sequence
@@ -61,6 +61,12 @@ llvm-objdump -d x86.o                # GNU objdump cannot read foreign arch; llv
 ```
 
 Two ARM sources: `cmp_inc_arm64.s` (native aarch64 — `ldr w1,[x0] / add / str`) and `cmp_inc_arm.s` (ARM32 Thumb — the exact `1B 68 / 5A 1C / 1A 60` bytes from The Evidence, needs `--target=armv7-linux-gnueabihf`). Same load-store shape, different encodings. Reverse direction of the macOS host: there x86 was native and ARM cross — the `--target` mechanism is identical both ways.
+
+> [!WARNING]- Wrong file for the target — the #1 mistake
+> `clang --target=aarch64-linux-gnu comp_inc_arm.s` (ARM32 Thumb source) fails with
+> `error: invalid operand for instruction` on `LDR R3, [R3]` — the aarch64 assembler rejects
+> 32-bit registers outright. This is not a typo; ARM32 and AArch64 are different ISAs.
+> Match source to target: ARM32 source → `--target=armv7-linux-gnueabihf`, AArch64 source → `--target=aarch64-linux-gnu`. Add `-c` (assemble only) unless you have a sysroot to link against.
 
 ## Why the Difference
 
