@@ -41,6 +41,27 @@ Same operation, both architectures (compilable sources: `Extras/assembly/cmp_inc
 
 Verified: both assemble under `clang --target=armv7-linux-gnueabihf` / `clang --target=i386-linux-gnu`; objdump shows the exact bytes above (`681b 1c5a 601a` in little-endian display = `1B 68 / 5A 1C / 1A 60`).
 
+## Reproducing on ARM Linux (aarch64, e.g. Alpine 3.24)
+
+On ARM hardware, the ARM side is **native** — the x86 side is the cross-compile:
+
+```bash
+apk add clang llvm binutils          # Alpine: one install covers both arches
+cd Extras/assembly
+
+# ARM (native, aarch64) — 3-instruction load-store sequence
+clang --target=aarch64-linux-gnu -c cmp_inc_arm64.s -o arm.o
+objdump -d arm.o                     # GNU objdump handles the native arch
+
+# x86 (cross: clang backend only, no sysroot needed for -c)
+clang --target=i386-linux-gnu -c cmp_inc_x86.s -o x86.o
+llvm-objdump -d x86.o                # GNU objdump cannot read foreign arch; llvm-objdump can
+
+# expected: arm.o → ldr/add/str (3 insns, 16 B) · x86.o → ff 00 incl (%eax) (1 insn, 2 B)
+```
+
+Two ARM sources: `cmp_inc_arm64.s` (native aarch64 — `ldr w1,[x0] / add / str`) and `cmp_inc_arm.s` (ARM32 Thumb — the exact `1B 68 / 5A 1C / 1A 60` bytes from The Evidence, needs `--target=armv7-linux-gnueabihf`). Same load-store shape, different encodings. Reverse direction of the macOS host: there x86 was native and ARM cross — the `--target` mechanism is identical both ways.
+
 ## Why the Difference
 
 - **CISC (x86):** arithmetic instructions accept *memory operands*. The `INC`/`ADD` unit performs read-modify-write against RAM directly — no register round-trip. `MOVS` goes further: it can read *and* write memory in one instruction (string copy).
@@ -57,4 +78,4 @@ Verified: both assemble under `clang --target=armv7-linux-gnueabihf` / `clang --
 
 - **Related:** [[x86-processor-modes]] — the operating modes these encodings run in
 - **Related:** [[Cross-Compiling Assembly for x86 and ARM on Linux]] — compiling the same source for both targets
-- **Compilable sources:** `Extras/assembly/cmp_inc_x86.s`, `Extras/assembly/cmp_inc_arm.s` (compile: `clang --target=i386-linux-gnu -c cmp_inc_x86.s`, `clang --target=armv7-linux-gnueabihf -c cmp_inc_arm.s`)
+- **Compilable sources:** `Extras/assembly/cmp_inc_x86.s` (`--target=i386-linux-gnu`), `cmp_inc_arm.s` (ARM32 Thumb, `--target=armv7-linux-gnueabihf`), `cmp_inc_arm64.s` (aarch64, `--target=aarch64-linux-gnu`)
