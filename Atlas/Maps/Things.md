@@ -16,7 +16,7 @@ What are "Things"? They are the sturdy dots that answer "What is this?" — conc
 > ```dataview
 > TABLE WITHOUT ID
 >  file.link as Thing
-> FROM "Atlas/Dots/Things/Golang" OR "Atlas/Dots/Things/Python" OR "Atlas/Dots/Things/Rust"
+> FROM "Atlas/Dots/Things/Assembly" OR "Atlas/Dots/Things/Golang" OR "Atlas/Dots/Things/Python" OR "Atlas/Dots/Things/Rust"
 > WHERE !contains(file.name, "Template")
 > SORT file.name asc
 > ```

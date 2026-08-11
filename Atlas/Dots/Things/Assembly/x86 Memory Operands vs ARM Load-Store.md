@@ -6,7 +6,7 @@ related:
   - "[[x86-processor-modes]]"
   - "[[Cross-Compiling Assembly for x86 and ARM on Linux]]"
 in:
-  - "[[Atlas]]"
+  - "[[Things]]"
 tags:
   - assembly
   - x86

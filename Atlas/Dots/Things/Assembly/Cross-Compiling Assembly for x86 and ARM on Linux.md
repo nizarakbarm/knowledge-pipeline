@@ -5,7 +5,7 @@ up:
 related:
   - "[[x86-processor-modes]]"
 in:
-  - "[[Atlas]]"
+  - "[[Things]]"
 tags:
   - assembly
   - cross-compilation
