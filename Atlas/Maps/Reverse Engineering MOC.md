@@ -24,6 +24,7 @@ Map of Content for reverse engineering and x86 architecture knowledge.
 - [[cr-registers]] - Control registers for paging
 - [[msr]] - Model Specific Registers
 - [[x86-data-types]] - Assembly data types
+- [[Cross-Compiling Assembly for x86 and ARM on Linux]] - Cross-compiling assembly (x86 + ARM) via GNU cross binutils or clang --target
 
 ## Resources
 
