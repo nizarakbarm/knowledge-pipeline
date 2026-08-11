@@ -9,6 +9,7 @@ _start:
     ldr  r3, [r0]           @ read value at counter
     adds r2, r3, #1         @ +1
     str  r2, [r0]           @ write back
+    mov  r0, #0             @ exit code 0
     mov  r7, #1             @ exit syscall
     svc  0
     .size _start, .-_start

@@ -9,6 +9,7 @@ _start:
     ldr  w1, [x0]           // read value at counter
     add  w1, w1, #1         // +1
     str  w1, [x0]           // write back
+    mov  x0, #0            // exit code 0
     mov  x8, #93            // exit syscall (aarch64)
     svc  0
     .size _start, .-_start
