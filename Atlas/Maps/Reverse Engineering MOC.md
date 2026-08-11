@@ -25,6 +25,7 @@ Map of Content for reverse engineering and x86 architecture knowledge.
 - [[msr]] - Model Specific Registers
 - [[x86-data-types]] - Assembly data types
 - [[Cross-Compiling Assembly for x86 and ARM on Linux]] - Cross-compiling assembly (x86 + ARM) via GNU cross binutils or clang --target
+- [[x86 Memory Operands vs ARM Load-Store]] - CISC memory operand vs RISC load-store; one instruction vs three
 
 ## Resources
 
