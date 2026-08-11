@@ -95,6 +95,24 @@ clang --target=armv7-linux-gnueabihf -nostdlib -static run_arm.s -o run_arm
 qemu-arm ./run_arm; echo "exit=$?"    # aarch64 host cannot run ARM32 natively
 ```
 
+> [!INFO]- Why qemu? ARM64 hardware ≠ ARM32 execution
+> Your Alpine host is **aarch64**; `run_arm` is **armv7 (32-bit)**. ARM64 CPUs can run ARM32 via the AArch32 state, but only when the kernel ships `CONFIG_COMPAT` (32-bit syscall layer). Alpine/cloud kernels often omit it → `execve` refuses the ARM32 ELF → the shell falls back to interpreting it as a script (`syntax error: unexpected word`). `qemu-arm` is user-mode emulation — it sidesteps the kernel entirely, which is why the ARM32 binary needs it on a 64-bit host.
+
+**Prefer native? Use the aarch64 build** — runs directly, no qemu (source `Extras/assembly/run_arm64.s`):
+
+```bash
+clang --target=aarch64-linux-gnu -nostdlib -static run_arm64.s -o run_arm64
+./run_arm64; echo "exit=$?"
+```
+
+Same 3-instruction load-store increment (`ldr w1,[x0] / add / str`), aarch64 registers and exit syscall (`x8=93` instead of `r7=1`).
+
+| host | `run_arm.s` (ARM32) | `run_arm64.s` (aarch64) |
+|---|---|---|
+| aarch64 Linux (Alpine) | needs `qemu-arm` (kernel `CONFIG_COMPAT` often absent) | **native, just run** |
+| ARM32 host | native | won't run |
+| x86 host | `qemu-arm` | `qemu-aarch64` |
+
 `objdump -d` disassembly of `run_arm.o` shows the 3-instruction increment (`ldr r3,[r0]` / `adds r2,r3,#1` / `str r2,[r0]`) — note this build emits **ARM-state** encodings (`e5903000`-style, 32-bit) unless the source carries `.thumb`; Thumb gives the `1B 68 / 5A 1C / 1A 60` bytes from The Evidence. Either state proves the load-store shape. The `.o` is *not* executable — link first (the `-nostdlib -static` step above).
 
 ## Why the Difference
