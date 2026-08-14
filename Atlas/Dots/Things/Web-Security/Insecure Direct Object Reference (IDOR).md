@@ -6,6 +6,7 @@ up:
 related:
   - "[[Nginx Alias Misconfiguration (Path Traversal)]]"
   - "[[Open Redirect (Improper Redirect Handling)]]"
+  - "[[Mass Assignment (API-Mass-Assignment)]]"
 in:
   - "[[Things]]"
 tags:
@@ -59,6 +60,49 @@ Anywhere object IDs travel client → server: REST, GraphQL, file downloads, adm
 > - **Sibling:** [[Open Redirect (Improper Redirect Handling)]] — same trust boundary: server trusts client-supplied references
 > - **Sibling:** [[Nginx Alias Misconfiguration (Path Traversal)]] — path-as-reference traversal, same family
 > - **OWASP:** API Security Top 10 #1 — Broken Object Level Authorization (BOLA); part of Broken Access Control (#1, Web Top 10)
+
+## Session cookie (Flask, this challenge)
+
+Flask keeps login state in the `session=` cookie — three dot-separated base64url parts:
+
+| # | Part | This cookie | Holds |
+|---|------|-------------|-------|
+| 1 | Payload | `eJwl…` | zlib-compressed JSON — readable by anyone |
+| 2 | Timestamp | `an6X6w` | issue time, signed so it can't roll back |
+| 3 | Signature | `GeHMO5…` | SHA-1 HMAC over parts 1+2, keyed with server secret |
+
+> [!EXAMPLE]- Decode walkthrough
+> 1. **Split on `.`** — `payload.timestamp.signature` → `eJwl…` · `an6X6w` · `GeHMO5…`
+> 2. **base64url-decode part 1** — bytes start `78 9c` (zlib magic) → it's compressed
+> 3. **zlib inflate** → JSON: `{"_fresh": true, "_id": "7409ba…", "_user_id": "3"}`
+> 4. **Read `_user_id`** — the logged-in identity, sitting client-side in plaintext
+> 5. **Verify, don't forge** — recompute HMAC; only the server's secret matches
+
+```mermaid
+flowchart TD
+  A["session=.eJwl…an6X6w.GeHMO5…"] --> B["1. split on . → payload · ts · sig"]
+  B --> C["2. base64url-decode payload"]
+  C --> D["3. zlib inflate → JSON"]
+  D --> E["4. _user_id: '3' = your identity"]
+  E --> F["5. edit _user_id → recompute HMAC?"]
+  F -->|no server secret| G["signature mismatch → 400"]
+  F -->|server secret only| H["accepted — but you don't have it"]
+```
+
+**Working one-liner** — login request → cookie line → payload part → zlib-inflate, no manual steps:
+
+```nu
+curl -s -i -XPOST http://challenge01.root-me.org:59090/api/login -H 'Content-Type: application/json' -d '{"username": "test", "password": "test"}' | decode utf-8 | lines | find -i set-cookie | get 0 | split row ':' | get 1 | split row '.' | get 1 | str trim | python -c "import sys, base64, zlib; t = sys.stdin.read().strip(); t += '=' * (-len(t) % 4); print(zlib.decompress(base64.urlsafe_b64decode(t)))"
+```
+
+Output — the walkthrough above, verified live:
+
+```
+b'{"_fresh":true,"_id":"7409ba327c268ddd1dfcb5b60d6d0fc50f42630ae2041ad426b98b2369e53ee5824deeeb75d05d0f5455488cf5fe9b2986dca7c13483de4a91d1f6194413ecd8","_user_id":"3"}'
+```
+
+> [!WARNING]- So what
+> **Signed ≠ encrypted.** Decodable by anyone, forgeable by nobody. The cookie proves *who you are* — the IDOR is *what you ask for* (`/api/user?id=4`). The readable `_user_id` still pays off: fresh account = user 3 → IDs are small sequential ints, worth enumerating.
 
 ## Source
 
