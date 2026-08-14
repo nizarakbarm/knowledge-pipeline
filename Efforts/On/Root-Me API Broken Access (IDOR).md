@@ -7,6 +7,7 @@ related:
   - "[[Root-Me HTTP - Improper redirect]]"
   - "[[Root-Me Nginx - Alias Misconfiguration]]"
   - "[[Root-Me Nginx - Root Location Misconfiguration]]"
+  - "[[Root-Me HTTP - CRLF injection]]"
 in:
   - "[[Efforts]]"
 tags:

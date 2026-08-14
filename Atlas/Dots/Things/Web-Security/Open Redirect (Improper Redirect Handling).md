@@ -6,6 +6,7 @@ up:
 related:
   - "[[Nginx Alias Misconfiguration (Path Traversal)]]"
   - "[[Insecure Direct Object Reference (IDOR)]]"
+  - "[[CRLF Injection (HTTP-CRLF)]]"
 in:
   - "[[Things]]"
 tags:

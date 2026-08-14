@@ -7,6 +7,7 @@ related:
   - "[[Root-Me HTTP - Improper redirect]]"
   - "[[Root-Me API Broken Access (IDOR)]]"
   - "[[Nginx Root Location Misconfiguration (Config Exposure)]]"
+  - "[[Root-Me HTTP - CRLF injection]]"
 in:
   - "[[Efforts]]"
 tags:

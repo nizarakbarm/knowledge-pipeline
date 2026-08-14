@@ -3,44 +3,44 @@ created: 2026-08-14
 up:
   - "[[Efforts]]"
 related:
-  - "[[Root-Me API Broken Access (IDOR)]]"
-  - "[[Open Redirect (Improper Redirect Handling)]]"
+  - "[[Root-Me HTTP - Improper redirect]]"
   - "[[Root-Me Nginx - Alias Misconfiguration]]"
   - "[[Root-Me Nginx - Root Location Misconfiguration]]"
-  - "[[Root-Me HTTP - CRLF injection]]"
+  - "[[Root-Me API Broken Access (IDOR)]]"
+  - "[[CRLF Injection (HTTP-CRLF)]]"
 in:
   - "[[Efforts]]"
 tags:
   - root-me
   - http
-  - redirect
-  - open-redirect
+  - crlf
+  - injection
+  - log-injection
   - web-security
   - ctf
 ---
 
-# Root-Me HTTP - Improper redirect
+# Root-Me HTTP - CRLF injection
 
-Challenge: [HTTP - Improper redirect](https://www.root-me.org/en/Challenges/Web-Server/HTTP-Improper-redirect) — Root-Me Web/Server challenge, topic: improper redirect handling.
+Challenge: [HTTP - CRLF injection](https://www.root-me.org/en/Challenges/Web-Server/HTTP-CRLF-injection) — Root-Me Web/Server challenge, path `/web-serveur/ch14/`, topic: CRLF injection in a reflected username → forged authentication-log line.
 
 > [!Milestone]+ Status: solved
-> Solved with `curl --no-location` — don't follow the redirect; read the raw response.
+> Solved with `curl` — CRLF in the username parameter forges an `admin authenticated.` log line and the server hands over the flag.
 
 ## What is known
 
-- **Profile:** 15 pts, Web - Server, author Arod (2014), challenge path `/web-serveur/ch32/`.
-- **Topic:** the server serves the flag in the response and then redirects; a client that follows the redirect loses it. Fix the client, not the server.
-- **Technique:** `curl --no-location` — prevents curl from following redirects, exposing the raw 3xx response where the flag sits.
+- **Profile:** 15 pts, Web - Server. Path `http://challenge01.root-me.org/web-serveur/ch14/`.
+- **Topic:** the auth log builds `$username failed to authenticate.` from unescaped input. A `%0D%0A` (CRLF) in the username breaks out of the line and forges new log entries — the server's log check then grants the flag.
 - **Flag:** captured at solve; value kept out of the vault (don't copy flags).
 
 > [!NOTE]- Access: Anubis anti-bot
-> Challenge pages are served behind Anubis — scripted fetches return a bot-check page. Use a real browser session or hit the challenge host directly.
+> Root-Me pages are served behind Anubis — the challenge instance itself responds directly to curl.
 
 ## How it was solved
 
-1. Request the challenge endpoint with redirect-following disabled: `curl --no-location <url>`.
-2. Read the raw response curl shows — the flag is there, before/at the redirect.
-3. `--no-location` is the whole trick: see what the redirect was hiding.
+1. **Recon:** `curl http://challenge01.root-me.org/web-serveur/ch14/` → GET login form + static auth log hint (`admin authenticated.` — credentials exist; log is not persistent, it's a fixed hint + the current attempt).
+2. **Identify the flaw:** the log line reflects the submitted username verbatim — CRLF injection point.
+3. **Payload:** `?username=admin%20authenticated.%0D%0Aadmin&password=admin` → the appended failure line contains a forged `admin authenticated.` line → response: `Well done, you can validate challenge with this password : <flag>`.
 
 ## Post-solve pipeline
 
