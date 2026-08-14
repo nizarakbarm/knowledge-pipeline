@@ -20,15 +20,15 @@ tags:
 # Open Redirect (Improper Redirect Handling)
 
 > [!map]+ TL;DR
-> Two redirect failures in one family: (a) **open redirect** — the server redirects to an attacker-chosen target via unvalidated user input (`?url=`, `?next=`, `?redirect=`), enabling phishing; (b) **improper redirect handling** — the server serves the payload *in the 3xx response itself*, and any client that auto-follows (browsers, `curl -L`) never sees it. Both stem from the server trusting the client on where (or whether) to redirect.
+> Two redirect failures, one family: (a) **open redirect** — server redirects to an attacker-chosen target via unvalidated `?url=`/`?next=` input; (b) **improper redirect handling** — payload sits *in the 3xx response itself*, and any client that auto-follows never sees it. Both: server trusts the client on where (or whether) to redirect.
 
 ## The bug
 
-In an **open redirect**, the app takes a URL from the request and echoes it into the `Location` header without checking it against an allowlist. The redirect is legitimate — the server genuinely sends the user elsewhere. The problem is "elsewhere" is the attacker's choice. Users trust the original domain; the redirect silently hands that trust to a phishing page.
+**Open redirect.** The app echoes a request-supplied URL into the `Location` header without an allowlist. The redirect is real — the problem is the destination is the attacker's choice. Users trust the original domain; the redirect hands that trust to a phishing page.
 
-In **improper redirect handling**, the server embeds sensitive data in the response body of a 3xx reply, then sets a `Location` header to move on. Clients that obey `Location` automatically (browsers, `curl -L`, HTTP libraries with `follow_redirects=true`) discard the body entirely. The payload is there, visible to anything that reads the response without following the redirect.
+**Improper redirect handling.** The server puts sensitive data in the body of a 3xx reply, then `Location:` moves on. Clients that obey automatically (browsers, `curl -L`) discard the body. The payload is there — visible only if you read the response without following.
 
-Why it happens: frameworks treat redirects as a flow-control mechanism — "send the user over there" — not as a security boundary. Developers forget that (a) the target URL is user-influenced and (b) clients differ in how they handle 3xx bodies. Neither case requires a vulnerability in the traditional sense; it's a contract mismatch between server intent and client behavior.
+**Why:** frameworks treat redirects as flow control, not a security boundary. Developers forget the target is user-influenced, and clients differ in how they treat 3xx bodies.
 
 ## Attack flow
 
@@ -54,27 +54,25 @@ sequenceDiagram
 
 ## Spotting it
 
-> [!PUZZLE]- Test pattern
-> 1. Identify any parameter that controls a redirect target: `?url=`, `?next=`, `?redirect=`, `?return_to=`, `?callback=`.
-> 2. Replace the value with `https://evil.com`. Does the server follow it? → **open redirect**.
-> 3. For hidden payloads: request the endpoint with redirect-following disabled (`curl --no-location`, `fetch` with `redirect: "manual"`, browser DevTools → "Block redirect"). Read the raw 3xx body. Sensitive data in a redirect response → **improper redirect handling**.
-> 4. Check for an allowlist. Does the server validate the target domain before issuing the `Location` header? If not, that's the fix.
+> [!Shell]- Test pattern
+> 1. Find redirect-controlling params: `?url=`, `?next=`, `?redirect=`, `?return_to=`, `?callback=`.
+> 2. Set the value to `https://evil.com`. Server follows it → open redirect.
+> 3. For hidden payloads, disable redirect-following: `curl --no-location`, `fetch` with `redirect: "manual"`. Read the raw 3xx body.
+> 4. Check the allowlist — does the server validate the target before issuing `Location:`?
 
 ## Where it shows up
 
-OAuth callback flows (`?redirect_uri=`), login/logout handlers (`?next=`), payment gateways returning to a merchant URL, SSO integrations, any endpoint that "sends the user somewhere" after an action. Improper redirect handling appears in legacy apps, internal admin tools, and any server-side flow that combines a status redirect with a response body. Both variants are common in large codebases — automated scanners flag unvalidated redirect parameters regularly (OWASP ZAP, Burp Suite).
+OAuth callbacks (`?redirect_uri=`), login/logout handlers (`?next=`), payment return URLs, SSO — anywhere the app "sends the user somewhere" after an action. Legacy apps and internal tools carry the 3xx-body variant.
 
-## Connections
-
-- **OWASP:** Top 10 2013 A10 — Unvalidated Redirects and Forwards; no standalone slot in 2021, but the pattern still shows up in assessments
-- **Sibling:** [[Insecure Direct Object Reference (IDOR)]] — both are authorization-adjacent failures where the server trusts client input without validation
-- **Related:** OAuth `redirect_uri` validation, SSRF (redirect as a pivot to internal services)
+> [!Connect]- Connections
+> - **Sibling:** [[Nginx Alias Misconfiguration (Path Traversal)]] — both server-side handling flaws: open redirect picks the destination, alias traversal picks the source file
+> - **Sibling:** [[Insecure Direct Object Reference (IDOR)]] — same trust boundary: server trusts client-supplied references
+> - **Family:** OAuth `redirect_uri` validation, SSRF pivots; OWASP Top 10 2013 A10 (Unvalidated Redirects and Forwards)
 
 ## Source
 
-- [OWASP — URL Redirector Abuse](https://cheatsheetseries.owasp.org/cheatsheets/URL_Redirector_Abuse_Cheat_Sheet.html) — open redirect patterns and mitigations
-- [OWASP Top 10 (2021)](https://owasp.org/Top10/) — redirect abuse in the context of broken access control
-- [Root-Me: HTTP - Improper redirect](https://www.root-me.org/en/Challenges/Web-Server/HTTP-Improper-redirect) — hands-on exercise; payload in pre-redirect response
+- [OWASP — URL Redirector Abuse](https://cheatsheetseries.owasp.org/cheatsheets/URL_Redirector_Abuse_Cheat_Sheet.html)
+- [Root-Me: HTTP - Improper redirect](https://www.root-me.org/en/Challenges/Web-Server/HTTP-Improper-redirect)
 
 ---
 

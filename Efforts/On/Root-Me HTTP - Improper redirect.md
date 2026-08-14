@@ -6,6 +6,7 @@ related:
   - "[[Root-Me API Broken Access (IDOR)]]"
   - "[[Open Redirect (Improper Redirect Handling)]]"
   - "[[Root-Me Nginx - Alias Misconfiguration]]"
+  - "[[Root-Me Nginx - Root Location Misconfiguration]]"
 in:
   - "[[Efforts]]"
 tags:

@@ -6,6 +6,7 @@ related:
   - "[[Insecure Direct Object Reference (IDOR)]]"
   - "[[Root-Me HTTP - Improper redirect]]"
   - "[[Root-Me Nginx - Alias Misconfiguration]]"
+  - "[[Root-Me Nginx - Root Location Misconfiguration]]"
 in:
   - "[[Efforts]]"
 tags:

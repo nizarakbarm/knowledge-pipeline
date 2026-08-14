@@ -19,13 +19,13 @@ tags:
 # Insecure Direct Object Reference (IDOR)
 
 > [!map]+ TL;DR
-> The server trusts a client-supplied object ID (`?user_id=3`, `/api/note/42`) without checking that the object belongs to the caller. Authentication passes; object-level authorization is missing.
+> The server trusts a client-supplied object ID (`?user_id=3`, `/api/note/42`) without checking ownership. Authentication passes; object-level authorization is missing. Swap your ID for someone else's — server returns their data.
 
 ## The bug
 
-IDOR is an authorization failure, not an authentication failure. The app proves *who you are* (login) but never checks *what you may read* — it trusts the object ID you send. Swap your ID for someone else's and the server returns their data.
+IDOR is an authorization failure, not an authentication failure. The app proves *who you are* (login) but never checks *what you may read* — it trusts the ID you send.
 
-Why it happens: frameworks check "who may call this endpoint", not "which object may they read". The fix — verify `object.owner == current_user.id` — looks simple, but must run on *every* object-fetching endpoint. One missed endpoint is a full compromise.
+**Why:** frameworks check "who may call this endpoint", not "which object may they read". The fix — verify `object.owner == current_user.id` — must run on *every* object-fetching endpoint. One missed endpoint is a full compromise.
 
 ## Attack flow
 
@@ -53,18 +53,17 @@ sequenceDiagram
 
 ## Where it shows up
 
-Any place object IDs travel client → server: REST and GraphQL APIs (`GET /api/note/42`), file downloads (`/download?file=report_003.pdf`), admin panels, multi-tenant SaaS. More object endpoints = more surface; automated scanners flag IDOR constantly in large APIs.
+Anywhere object IDs travel client → server: REST, GraphQL, file downloads, admin panels, multi-tenant SaaS. More object endpoints = more surface; scanners flag it constantly.
 
-## Connections
-
-- **OWASP:** API Security Top 10 #1 — Broken Object Level Authorization (BOLA); also part of Broken Access Control (#1 in the Web Top 10)
-- **Related:** Authentication vs Authorization — IDOR is an authorization failure
-- **Applies to:** REST/GraphQL APIs, file handlers, multi-tenant platforms
+> [!Connect]- Connections
+> - **Sibling:** [[Open Redirect (Improper Redirect Handling)]] — same trust boundary: server trusts client-supplied references
+> - **Sibling:** [[Nginx Alias Misconfiguration (Path Traversal)]] — path-as-reference traversal, same family
+> - **OWASP:** API Security Top 10 #1 — Broken Object Level Authorization (BOLA); part of Broken Access Control (#1, Web Top 10)
 
 ## Source
 
 - [OWASP API Security Top 10 (2023)](https://owasp.org/API-Security/) — API1:2023 Broken Object Level Authorization
-- [Root-Me: API - Broken Access](https://www.root-me.org/en/Challenges/Web-Server/API-Broken-Access) — hands-on IDOR exercise via `/api/user` and `/api/note`
+- [Root-Me: API - Broken Access](https://www.root-me.org/en/Challenges/Web-Server/API-Broken-Access)
 
 ---
 
